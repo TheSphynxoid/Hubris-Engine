@@ -1,0 +1,86 @@
+#pragma once
+#include <filesystem>
+
+
+namespace Sphynx::IO {
+	class IOBuffer {
+	private:
+		const void* buffer = nullptr;
+		size_t buffersize = 0;
+		
+	public:
+		IOBuffer()noexcept = default;
+		IOBuffer(const void* buffer, const size_t buffersize)noexcept {
+			this->buffer = buffer;
+			this->buffersize = buffersize;
+		}
+		inline const size_t& size()const noexcept { return buffersize; };
+		inline const void* get_raw()const noexcept { return buffer; };
+	};
+
+	class ExtensionHandler {
+	public:
+		virtual ~ExtensionHandler() = 0;
+
+		virtual IOBuffer& Read(const std::string& Path, bool RelativePath = true) = 0;
+		virtual void Write(const void* Buffer, const size_t Buf_Size) = 0;
+	};
+	struct Extension {
+		/**
+		 * @brief Use | to seperate between handled file extensions.
+		 */
+		const char* extPostfix;
+		ExtensionHandler* Handler;
+	};
+
+	class Asset {
+
+	};
+
+	class ResourceManager {
+	private:
+		typedef std::unordered_map<std::string, ExtensionHandler*> ExtensionHandlerMap;
+		static inline ExtensionHandlerMap HandlerMap = ExtensionHandlerMap(25);
+
+
+		static std::vector<std::string> ParseExtensions(const std::string& extPostfix) {
+			std::stringstream ss(extPostfix);
+			std::string extension;
+			std::vector<std::string> extensions;
+
+			while (std::getline(ss, extension, '|')) {
+				extension.erase(0, extension.find_first_not_of(" \t\n\r\f\v"));
+				extension.erase(extension.find_last_not_of(" \t\n\r\f\v") + 1);
+				extensions.push_back(extension);
+			}
+			return extensions;
+		}
+	public:
+		static void SetExtensionHandler(const Extension& ext) {
+			//Parse The postfix. | is used to seperate between file extension handled.
+			std::stringstream ss(ext.extPostfix);
+			std::string extension;
+
+			while (std::getline(ss, extension, '|')) {
+				// Remove any leading or trailing whitespace
+				extension.erase(0, extension.find_first_not_of(" \t\n\r\f\v"));
+				extension.erase(extension.find_last_not_of(" \t\n\r\f\v") + 1);
+
+				// Add the extension and its handler to the map
+				HandlerMap[extension] = ext.Handler;
+			}
+		}
+
+		static IOBuffer& ReadFile(const std::string& path) {
+			size_t dotPos = path.find_last_of('.');
+			if (dotPos == std::string::npos) {
+				// No extension found
+				return {};
+			}
+			auto& handler = HandlerMap[path.substr(dotPos + 1)];
+
+			return handler->Read(path);
+		}
+		
+	};
+}

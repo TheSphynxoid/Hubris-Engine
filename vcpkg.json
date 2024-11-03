@@ -1,0 +1,20 @@
+{
+  "dependencies": [
+    "assimp",
+    "fmt",
+    "glfw3",
+    "glm",
+    {
+      "name": "glslang",
+      "features": [
+        "opt",
+        "tools"
+      ]
+    },
+    "spirv-cross",
+    "spirv-headers",
+    "spirv-reflect",
+    "spirv-tools",
+    "volk"
+  ]
+}
