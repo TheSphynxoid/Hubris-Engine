@@ -7,7 +7,7 @@ set(HEADERS
 "include/Core/ThreadPool.h" "include/Engine.h" "include/Core/ThreaddingServer.h"
 "include/Logger.h" "include/Core/Graphics/Vulkan/vkWindow.h" "include/Core/Graphics/Vulkan/vkBackend.h" "include/Platform.h" "include/IO/ResourceManager.h" "include/Core/Utils.h" "include/Core/Memory.h")
 set(SOURCES
-"src/pch.cpp" "src/Logger.cpp" "src/IO/ResourceManager.cpp" "src/Entrypoint.cpp" "src/Engine.cpp" "src/Core/Graphics/Vulkan/vkWindow.cpp")
+"src/pch.cpp" "src/Logger.cpp" "src/IO/ResourceManager.cpp" "src/Entrypoint.cpp" "src/Engine.cpp" "src/Core/Graphics/Vulkan/vkWindow.cpp" "src/Core/Graphics/Window.cpp")
 
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source Files" FILES ${SOURCES})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include PREFIX "Header Files" FILES ${HEADERS})
@@ -47,7 +47,7 @@ target_link_libraries(SphynxEngine PRIVATE fmt::fmt)
 
 target_link_libraries(SphynxEngine PRIVATE assimp::assimp)
 target_link_libraries(SphynxEngine PRIVATE glfw)
-target_link_libraries(SphynxEngine PRIVATE glm::glm)
+target_link_libraries(SphynxEngine PUBLIC glm::glm)
 
 # target_link_libraries(SphynxEngine PRIVATE SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-opt SPIRV-Tools-reduce glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
 target_link_libraries(SphynxEngine PRIVATE glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)

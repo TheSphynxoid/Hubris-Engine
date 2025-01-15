@@ -1,12 +1,17 @@
 #include "pch.h"
 #include "Engine.h"
+#include "Core/Graphics/Window.h"
+#ifdef SPH_WINDOWS
+#include "Core/Graphics/Vulkan/vkBackend.h"
+#include "Core/Graphics/Vulkan/vkWindow.h"
+#endif
 
 using namespace Sphynx::Graphics;
 using namespace Sphynx;
 
-Window* Engine::InitGraphics(const EngineConfig & config)
+void Engine::InitGraphics(const EngineConfig & config)
 {
-	switch (config.GraphicsBackend == Sphynx::RenderAPI::None ? config.FallbackBackend : config.GraphicsBackend)
+	switch (config.GraphicsBackend)
 	{
 	case RenderAPI::DX11:
 		//break;
@@ -17,11 +22,12 @@ Window* Engine::InitGraphics(const EngineConfig & config)
 		/*break;*/
 		[[fallthrough]];
 	case RenderAPI::Vulkan:
-		
+		Vulkan::VulkanBackend::Init();
 		break;
 	case RenderAPI::None:
+		//Special Headless mode. I haven't yet conceptualized it.
 		break;
 	default:
-		break;
+		return;
 	}
 }

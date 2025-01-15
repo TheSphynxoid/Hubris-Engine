@@ -66,11 +66,11 @@ namespace Sphynx {
 		/**
 		* @brief The threads in the pool.
 		*/
-		static std::vector<std::thread> Threads;
+		static inline std::vector<std::thread> Threads;
     public:
         static void InitalizePool(unsigned int threadCount =  std::thread::hardware_concurrency() - 1) {
 			ThreadCount = std::min(threadCount, std::thread::hardware_concurrency() - 1);
-            
+            Logger::Log("{0} Threads Allocated", ThreadCount);
 			for (unsigned int i = 0; i < ThreadCount; i++) {
 				Threads.emplace_back([]() {
 					while (true) {

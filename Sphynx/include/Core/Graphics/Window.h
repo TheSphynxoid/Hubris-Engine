@@ -2,6 +2,7 @@
 #ifdef SPH_WINDOW
 #else
 #define SPH_WINDOW
+#include "glm/glm.hpp"
 /**
  * @brief Contains all graphics related classes and structs.
  */
@@ -12,7 +13,8 @@ namespace Sphynx::Graphics
      */
     struct Viewport{
         int Xpos,Ypos,Width,Height;
-    };    class Window{
+    };
+    class Window{
     public:
         // Window() = default;
         virtual ~Window() = 0;
@@ -22,14 +24,9 @@ namespace Sphynx::Graphics
          */
         virtual void Init() = 0;
         /**
-         * @brief 
-         * 
+         * @brief Poll events.
          */
-        virtual void Create() = 0;
-        /**
-         * @brief Swaps the buffer and draws on the screen.
-         */
-        virtual void Render()noexcept = 0;
+        virtual void Update()noexcept = 0;
         /**
          * @brief Closes the Window and frees resources.
          */
@@ -44,6 +41,8 @@ namespace Sphynx::Graphics
          * @return returns true if the Window is valid.
          */
         virtual bool IsValid()const noexcept = 0;
+
+        static void Create(const glm::ivec2& size, const char* title);
     };
 } // namespace Sphynx::Graphics
 

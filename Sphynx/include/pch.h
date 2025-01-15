@@ -16,10 +16,13 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <set>
+#include <map>
+#include <queue>
 #include <typeindex>
 #include <typeinfo>
 //END OF STD HEADERS
 //SPH HEADERS
 #include "Platform.h"
 #include "Logger.h"
+#include "Error.h"
 //END OF SPH HEADER

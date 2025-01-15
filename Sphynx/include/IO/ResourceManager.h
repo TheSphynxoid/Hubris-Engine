@@ -75,7 +75,7 @@ namespace Sphynx::IO {
 			size_t dotPos = path.find_last_of('.');
 			if (dotPos == std::string::npos) {
 				// No extension found
-				return {};
+				return IOBuffer(nullptr, 0);
 			}
 			auto& handler = HandlerMap[path.substr(dotPos + 1)];
 

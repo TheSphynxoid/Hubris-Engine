@@ -10,6 +10,7 @@
 #include <sstream>
 #include <unordered_map>
 #include "fmt/core.h"
+#include <fmt/std.h>
 
 namespace Sphynx {
     class Logger {
@@ -26,11 +27,11 @@ namespace Sphynx {
             return ss.str();
         }   
 
-        static FILE* OpenAndSet(std::string fileName){
+        static FILE* OpenAndReturn(std::string fileName){
             FILE* f;
             errno_t err = fopen_s(&f, fileName.c_str(), "a+");
             if(err != 0){
-                std::cerr << "Logger: Error opening file " << fileName << std::endl;
+                std::cerr << "Logger: Error opening file " << fileName << "\n";
             }
             LogFiles[fileName] = f;
             return f;
@@ -39,23 +40,35 @@ namespace Sphynx {
     public:
     
         static void Start(){
-            LogFile = fopen("Engine.log", "a+");
+            errno_t err = fopen_s(&LogFile, "Engine.log", "a+");
+            if(err != 0){
+                std::cout << "Fatal: Failed to open log file\n";
+            }
         }
         template<typename ...Args>
         static void FileLog(std::string fileName, const char* message, Args&& ...args){
             FILE* file = LogFiles[fileName];
-            file = (file ? file : OpenAndSet(fileName));
-            std::cout << fmt::format(message, std::forward<Args>(args)...) << std::endl;
+            file = (file ? file : OpenAndReturn(fileName));
+            std::cout << fmt::format(message, std::forward<Args>(args)...) << "\n";
             fmt::println(file, "({})[ThreadID: {}] Fatal: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
         }
         template<typename ...Args>
         static void Log(const char* message,Args&&  ...args){
-            std::cout << fmt::format(message, std::forward<Args>(args)...) << std::endl;
+            std::cout << fmt::format(message, std::forward<Args>(args)...) << "\n";
+            if(!LogFile) return;
+            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
+            fflush(LogFile);
+        }
+        template<typename ...Args>
+        static void Log(const std::string& message,Args&&  ...args){
+            std::cout << fmt::format(message, std::forward<Args>(args)...) << "\n";
+            if(!LogFile) return;
             fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
         }
         template<typename ...Args>
         static void Fatal(const char* message,Args&&  ...args){
             std::cerr << fmt::format("({})[ThreadID: {}] Info: {}\n", getCurrentTime(), message, std::forward<Args>(args)...);
+            if(!LogFile) return;
             fmt::println(LogFile, "({})[ThreadID: {}] Fatal: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
         }
     };
