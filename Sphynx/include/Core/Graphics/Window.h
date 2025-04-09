@@ -11,13 +11,16 @@ namespace Sphynx::Graphics
     /**
      * @brief Screen-space Dimensions.
      */
-    struct Viewport{
-        int Xpos,Ypos,Width,Height;
+    struct Viewport{ 
+        int Width, Height, Xpos, Ypos;
     };
+    /**
+     * @brief 
+     */
     class Window{
     public:
         // Window() = default;
-        virtual ~Window() = 0;
+        virtual ~Window() = default;
         /**
          * @brief Intializes the rendering backend and creates the Window.
          * @exception Can throw.
@@ -42,7 +45,13 @@ namespace Sphynx::Graphics
          */
         virtual bool IsValid()const noexcept = 0;
 
-        static void Create(const glm::ivec2& size, const char* title);
+        virtual bool IsRunning()const noexcept = 0;
+        /**
+         * @brief Get the Native object.
+         * 
+         * @return void* an platform dependent handle.
+         */
+        virtual void* GetNative()const noexcept = 0;
     };
 } // namespace Sphynx::Graphics
 

@@ -18,16 +18,28 @@ add_compile_options("$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 add_compile_options("$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 
 if(DEFINED ENV{VCPKG_ROOT})
-#set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
+set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake" CACHE STRING "")
 message("VCPKG found at: $ENV{VCPKG_ROOT}")
 else()
 message(SEND_ERROR "VCPKG not found")
 endif()
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(DEBUG)
+    message("Debug Build")
+endif()
+
+if(CMAKE_CONFIGURATION_TYPES STREQUAL "Debug")
+    add_compile_definitions(DEBUG)
+    message("Debug Build")
+endif()
+
+
+
 project(SphynxEngine)
 
 add_subdirectory("Sphynx")
-add_subdirectory("EngineStub")
+# add_subdirectory("EngineStub")
 add_subdirectory("Sandbox")
 # Add source to this project's executable.
 # add_executable (Sphynx-Engine "Sphynx-Engine.cpp" "Sphynx-Engine.h")
@@ -37,3 +49,6 @@ if (CMAKE_VERSION VERSION_GREATER 3.12)
 endif()
 
 # TODO: Add tests and install targets if needed.
+set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
+set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
+set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")

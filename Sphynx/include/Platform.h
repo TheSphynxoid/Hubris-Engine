@@ -5,7 +5,7 @@ enum class Sph_Platform : unsigned short {
     Windows, Linux, MacOS, IOS, Android, Unknown
 };
 
-constexpr Sph_Platform GetPlatform() noexcept{
+[[nodiscard]] constexpr inline Sph_Platform GetPlatform() noexcept{
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
     #define SPH_WINDOWS
     return Sph_Platform::Windows;

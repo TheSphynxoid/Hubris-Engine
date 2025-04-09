@@ -5,21 +5,27 @@
 #include <Core/ThreaddingServer.h>
 #include <Core/Graphics/Window.h>
 
+/// @brief The Sphynx Engine main namespace.
 namespace Sphynx {
 
-	enum class RenderAPI : unsigned short {
-		OpenGL, Vulkan, DX12, DX11, None
-	};
 
 	struct Version {
 		int Variant, Major, Minor, Patch;
 	};
-
+	/**
+	 * \defgroup EngineGroup Engine Configuration and Management
+	 * This group contains the Engine and its configuration details.
+	 * @{
+	 */
+	enum class RenderAPI : unsigned short {
+		OpenGL, Vulkan, DX12, DX11, None
+	};
+	/// @brief Used to configure the engine on instantiation.
 	struct EngineConfig {
 		/**
-		 * @brief Maximum of Thread to be spawned.
+		 * @brief Maximum of Thread to be spawned. (default: std::thread::hardware_concurrency() - 1)
 		 */
-		unsigned int ThreadCount = std::thread::hardware_concurrency();
+		unsigned int ThreadCount = std::thread::hardware_concurrency() - 1;
 		RenderAPI GraphicsBackend = RenderAPI::Vulkan;
 		/**
 		* @brief Set to empty string to make the execution folder the root.
@@ -34,9 +40,9 @@ namespace Sphynx {
 
 		Version ProjectVersion = { 0,0,0,0 };
 
-		Graphics::Viewport WindowDimension;
+		Graphics::Viewport WindowDimension = {0, 0};
 	};
-
+	/// @deprecated Here for library architure experiments, Strong possibility of removal.
 	class GraphicsManager final {
 		friend class Engine;
 
@@ -44,16 +50,35 @@ namespace Sphynx {
 	public:
 		static void CreateWindow();
 	};
-
-	class Engine {
+	/// @brief Stores and defines %Engine wide data and functionalities.
+	class Engine final {
 	private:
 		static inline bool Started = false;
 		static inline std::string ProjectName;
 		static inline Version ProjectVersion;
 		static inline Graphics::Window* window;
+		static inline std::terminate_handler originalHandler = nullptr;
 		static void InitGraphics(const EngineConfig& config);
+
+
+		static void Terminate() noexcept{
+			Logger::Fatal("Engine Execution has been terminated.");
+			Logger::Close();
+			
+			if(originalHandler){
+				originalHandler();
+			}
+		}
+
+		/// @brief The Engine class is purely static.
+		Engine() = delete;
+		~Engine() = delete;
+
 	public:
-		static EngineConfig GetPlatformConfig(std::string ProjectName = "Default", const Version& ProjectVersion = {0,0,0,0}) {
+		/**
+		 * @brief Returns the default platform's (Windows, Linux, etc...) default engine configuration.
+		 */
+		static EngineConfig GetPlatformConfig(std::string ProjectName = "Default", const Version& ProjectVersion = {0,0,0,0}) noexcept {
 			static EngineConfig config;
 			static bool HasInit = false;
 			if (!HasInit) {
@@ -64,10 +89,11 @@ namespace Sphynx {
 			}
 			config.ProjectName = ProjectName;
 			config.ProjectVersion = ProjectVersion;
+			config.WindowDimension = {800, 600};
 			return config;
 		}
 		/**
-		 * @brief Initializes the engine (headless) for the first time called.
+		 * @brief Initializes the engine (headless) for the first time called. TODO: Make sure this is a headless initializer.
 		 */
 		static void Init(const EngineConfig& config) noexcept {
 			if (Started) {
@@ -77,30 +103,47 @@ namespace Sphynx {
 			ProjectName = config.ProjectName;
 			//ThreadPool::InitalizePool(config.ThreadCount);
 			InitGraphics(config);
+
+			originalHandler = std::set_terminate(Engine::Terminate);
 		}
 
 		/**
 		 * @brief Yields control to the engine logic. The Engine will run until the program exits. 
 		 * 
 		 * This Calls Loop() in a loop.
+		 * 
+		 * @warning This requires the Engine to be initialized first.
 		 */
 		static void Run() {
 
 		}
 		/**
 		 * @brief The Engine Executes the main loop once, then returns control to user. 
+		 * 
+		 * @warning This requires the Engine to be initialized first.
 		 */
 		static void Loop() {
-
+			while(window->IsRunning()){
+				window->Update();
+				_sleep(100);
+			}
 		}
-
+		/**
+		 * @brief Get the Plugin Manager object. [A planned feature]
+		 * 
+		 * @addindex NotImplemented
+		 */
 		static void GetPluginManager() {
 
 		}
 
 		static void CreateWindow() {}
+		
 		static Graphics::Window* GetWindow() {};
 		static inline std::string GetProjectName() noexcept { return ProjectName; };
-		static inline const Version& GetProjectVersion()noexcept { return ProjectVersion; };
+		static inline const Version& GetProjectVersion() noexcept { return ProjectVersion; };
+		// static const char** GetVkRequiredExtensions() noexcept;
 	};
+	
+	/** @} */ // End of EngineGroup
 }

@@ -25,4 +25,5 @@
 #include "Platform.h"
 #include "Logger.h"
 #include "Error.h"
+#include "Core/Utils.h"
 //END OF SPH HEADER

@@ -1,12 +1,10 @@
 #include <pch.h>
-#include "GLPlatform.h"
+#include "Core/Graphics/GL/GLPlatform.h"
 #include <glad/glad.h>
-#include <glslang_c_interface.h>
-#include <spirv.hpp>
-#include <glfw3.h>
+#include <GLFW/glfw3.h>
 
 
-Sphynx::ErrorCode Sphynx::Graphics::GLPlatform::InitGL()
+Sphynx::ErrorCode Sphynx::Graphics::GL::GLPlatform::InitGL()
 {
     Logger::Log("OpenGL Backend init started");
     if(!gladLoadGL()){

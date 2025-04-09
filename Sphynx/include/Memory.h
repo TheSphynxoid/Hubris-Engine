@@ -1,4 +1,5 @@
 #pragma once
+//TODO: Why the fuck is there two memory.h files ?
 
 namespace Sphynx{
     struct Block{
