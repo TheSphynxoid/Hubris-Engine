@@ -3,7 +3,7 @@
 This is a rewrite of Sphynx Engine to be better structured and more modular.
 This implementation aims to be more flexible, easier to work with and upgradable with ease. 
 
-The engine is fully written in C++17.
+The engine will be written in C++20.
 
 *The engine is still in development and is not ready for use.*
 ## Planned Features:
@@ -15,6 +15,6 @@ The engine is fully written in C++17.
 - A plugin system.
 ## Requirements:
 - Vulkan SDK
-- CMake
-- C++17
+- Cmake 3.12 (or above)
+- C++20
 - vcpkg
