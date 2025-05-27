@@ -45,26 +45,6 @@ namespace Sphynx::Graphics::Vulkan {
      */
     class vkBackend final {
     private:
-        static inline VkDebugUtilsMessengerEXT debugMessenger;
-
-        static inline VkInstance instance = nullptr;
-        static inline VkPhysicalDevice physicalDevice = nullptr;
-        static inline VkDevice device = nullptr;
-        static inline VkQueue GraphicsQueue;
-        static inline VkQueue PresentQueue;
-        static inline const std::vector<const char*> requiredExt = {
-            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-            // VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
-            // VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-            // VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-            // VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-            // VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-            // VK_KHR_SPIRV_1_4_EXTENSION_NAME
-        };
-
-        static inline const std::vector<const char*> validationLayers = {
-            "VK_LAYER_KHRONOS_validation"
-        };
         /**
          * @brief This struct is used for initializing device.
          * Do not cache because most of the data can change each run.
@@ -78,6 +58,26 @@ namespace Sphynx::Graphics::Vulkan {
             QueueFamily Compute;
             QueueFamily Present;
             std::vector<QueueFamily> Transfer;
+        };
+
+        static inline RuntimeDeviceData SelectedDevice;
+        static inline VkDebugUtilsMessengerEXT debugMessenger;
+
+        static inline VkInstance instance = nullptr;
+        static inline VkPhysicalDevice physicalDevice = nullptr;
+        static inline VkDevice device = nullptr;
+        static inline const std::vector<const char*> requiredExt = {
+            VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+            VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+            VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+            VK_KHR_SPIRV_1_4_EXTENSION_NAME
+        };
+
+        static inline const std::vector<const char*> validationLayers = {
+            "VK_LAYER_KHRONOS_validation"
         };
 
         static VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
@@ -214,8 +214,11 @@ namespace Sphynx::Graphics::Vulkan {
             if (enableValidationLayers) {
                 extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
             }
-            
+            //According to vulkan specs, size will never overflow. Thus, this has no risk and the warning can be ignored here.
+#pragma warning( push )
+#pragma warning( disable : 4267)
             createInfo.enabledExtensionCount = extensions.size();
+#pragma warning( pop ) 
             createInfo.ppEnabledExtensionNames = extensions.data();
 
             VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
@@ -244,7 +247,7 @@ namespace Sphynx::Graphics::Vulkan {
 
         static VkInstance GetInstance() noexcept { return instance;};
         static VkDevice GetDevice() noexcept { return device; };
-
+        static VkPhysicalDevice GetPhysicalDevice() noexcept {return physicalDevice;};
         /**
          * @brief Initializes the Vulkan backend.
          * This is the first step to use any vulkan api.
@@ -255,6 +258,9 @@ namespace Sphynx::Graphics::Vulkan {
             auto Devices = QueryDevices(surface);
             if(!Devices.size())return ErrorCode::INTERNAL_ERROR;
             auto bestDev = (*Devices.begin()).second;
+            SelectedDevice = bestDev;   
+            
+            physicalDevice = bestDev.vkPhysicalDevice;
 
             std::set<uint32_t> UniqueQueueFamilies = { bestDev.Graphics.Index.value(), bestDev.Present.Index.value()};
             std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
@@ -298,11 +304,14 @@ namespace Sphynx::Graphics::Vulkan {
             }
             
 
-            vkGetDeviceQueue(device, bestDev.Graphics.Index.value(), 0, &GraphicsQueue);
+            vkGetDeviceQueue(device, bestDev.Graphics.Index.value(), 0, &vkRenderer::GraphicsQueue.queue);
+            vkRenderer::GraphicsQueue.index = bestDev.Graphics.Index.value();
             if(bestDev.Graphics.Index == bestDev.Present.Index){
-                PresentQueue = GraphicsQueue;
+                vkRenderer::PresentQueue = vkRenderer::GraphicsQueue;
+                vkRenderer::PresentQueue.index = bestDev.Graphics.Index.value();
             }else{
-                vkGetDeviceQueue(device, bestDev.Graphics.Index.value(), 0, &PresentQueue);
+                vkGetDeviceQueue(device, bestDev.Present.Index.value(), 0, &vkRenderer::PresentQueue.queue);
+                vkRenderer::PresentQueue.index = bestDev.Present.Index.value();
             }
 
 

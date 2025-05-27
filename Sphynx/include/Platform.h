@@ -8,6 +8,8 @@ enum class Sph_Platform : unsigned short {
 [[nodiscard]] constexpr inline Sph_Platform GetPlatform() noexcept{
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
     #define SPH_WINDOWS
+    #define WIN32_LEAN_AND_MEAN 
+    //#include "Windows.h"
     return Sph_Platform::Windows;
 #elif __APPLE__
 #include <TargetConditionals.h>

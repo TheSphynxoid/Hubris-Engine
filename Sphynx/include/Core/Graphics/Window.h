@@ -3,6 +3,8 @@
 #else
 #define SPH_WINDOW
 #include "glm/glm.hpp"
+#include "Format.h"
+
 /**
  * @brief Contains all graphics related classes and structs.
  */

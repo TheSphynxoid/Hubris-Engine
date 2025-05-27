@@ -4,6 +4,7 @@
 #include <Core/ThreadPool.h>
 #include <Core/ThreaddingServer.h>
 #include <Core/Graphics/Window.h>
+#include <Memory.h>
 
 /// @brief The Sphynx Engine main namespace.
 namespace Sphynx {
@@ -125,7 +126,10 @@ namespace Sphynx {
 		static void Loop() {
 			while(window->IsRunning()){
 				window->Update();
+#pragma warning (push) 
+#pragma warning (disable: 4996)
 				_sleep(100);
+#pragma warning (pop)
 			}
 		}
 		/**

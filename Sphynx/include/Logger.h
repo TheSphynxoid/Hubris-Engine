@@ -94,25 +94,58 @@ namespace Sphynx {
             std::cout << fmt::format(message, std::forward<Args>(args)...) << std::endl;
             fmt::println(file, "({})[ThreadID: {}] Fatal: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
         }
-        template<typename ...Args>
-        static void Log(const char* message,Args&&  ...args){
-            std::cout << fmt::format(message, std::forward<Args>(args)...) << std::endl;
-            if(!LogFile) return;
-            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
+
+        //template<typename ...Args>
+        //static void Log(fmt::string_view message, Args&&... args) {
+        //    const auto formatted = fmt::format(message, std::forward<Args>(args)...);
+        //    std::cout << formatted << std::endl;
+        //    if (!LogFile) return;
+        //    fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), formatted);
+        //    fflush(LogFile);
+        //}
+
+        
+        static void Log(const char* message) {
+            std::cout << message << std::endl;
+            if (!LogFile) return;
+            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), message);
             fflush(LogFile);
         }
-        template<typename ...Args>
-        static void Log(const std::string& message,Args&&  ...args){
-            std::cout << fmt::format(message, std::forward<Args>(args)...) << std::endl;
-            if(!LogFile) return;
-            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
+
+        static void Log(const std::string& message) {
+            std::cout << message << std::endl;
+            if (!LogFile) return;
+            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), message.c_str());
+            fflush(LogFile);
         }
+
         template<typename ...Args>
-        static void Fatal(const char* message,Args&&  ...args){
-            std::cerr << fmt::format("({})[ThreadID: {}] Fatal: {}\n", getCurrentTime(), std::this_thread::get_id(), message, std::forward<Args>(args)...);
-            if(!LogFile) return;
-            fmt::println(LogFile, "({})[ThreadID: {}] Fatal: {}", getCurrentTime(), std::this_thread::get_id(), fmt::format(message, std::forward<Args>(args)...));
+        static void Log(fmt::format_string<Args...> message, Args&&... args) {
+            const auto formatted = fmt::format(message, std::forward<Args>(args)...);
+            std::cout << formatted << std::endl;
+            if (!LogFile) return;
+            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), formatted);
+            fflush(LogFile);
         }
+
+        /*template<typename ...Args>
+        static void Fatal(fmt::string_view message, Args&&... args) {
+            const auto formatted = fmt::format(message, std::forward<Args>(args)...);
+            std::cerr << fmt::format("({})[ThreadID: {}] Fatal: {}\n", getCurrentTime(), std::this_thread::get_id(), formatted);
+            if (!LogFile) return;
+            fmt::println(LogFile, "({})[ThreadID: {}] Fatal: {}", getCurrentTime(), std::this_thread::get_id(), formatted);
+            fflush(LogFile);
+        }*/
+
+        template<typename ...Args>
+        static void Fatal(fmt::format_string<Args...> message, Args&&... args) {
+            const auto formatted = fmt::format(message, std::forward<Args>(args)...);
+            std::cerr << fmt::format("({})[ThreadID: {}] Fatal: {}\n", getCurrentTime(), std::this_thread::get_id(), formatted);
+            if (!LogFile) return;
+            fmt::println(LogFile, "({})[ThreadID: {}] Fatal: {}", getCurrentTime(), std::this_thread::get_id(), formatted);
+            fflush(LogFile);
+        }
+
     };
 }
 

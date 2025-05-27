@@ -1,6 +1,7 @@
 #pragma once
 #include <Core/Graphics/Window.h>
 #include <Engine.h>
+#include "Core/Graphics/Vulkan/Utility.h"
 
 namespace Sphynx::Graphics::Vulkan {
 	/**
@@ -27,5 +28,6 @@ namespace Sphynx::Graphics::Vulkan {
 		inline bool IsRunning()const noexcept override;
 		void* GetNative() const noexcept override;
 		void* GetSurface()const noexcept;
+		void* GetSwapchain()const noexcept;
 	};
 }
