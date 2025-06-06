@@ -4,7 +4,7 @@
 
 namespace Sphynx::Graphics::Vulkan {
     // Conversion from Format to VkFormat
-    constexpr VkFormat FormatToVkFormat(Format format) {
+    constexpr VkFormat FormatToVkFormat(Format format) noexcept {
         switch (format) {
         case Format::Undefined:         return VK_FORMAT_UNDEFINED;
         case Format::R8Unorm:           return VK_FORMAT_R8_UNORM;
@@ -51,7 +51,7 @@ namespace Sphynx::Graphics::Vulkan {
     }
 
     // Conversion from VkFormat to Format
-    constexpr Format VkFormatToFormat(VkFormat format) {
+    constexpr Format VkFormatToFormat(VkFormat format) noexcept {
         switch (format) {
         case VK_FORMAT_UNDEFINED:                return Format::Undefined;
         case VK_FORMAT_R8_UNORM:                 return Format::R8Unorm;

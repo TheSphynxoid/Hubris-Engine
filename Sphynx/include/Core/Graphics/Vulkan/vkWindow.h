@@ -2,6 +2,7 @@
 #include <Core/Graphics/Window.h>
 #include <Engine.h>
 #include "Core/Graphics/Vulkan/Utility.h"
+#include <Core/Graphics/Vulkan/vkSwapchain.h>
 
 namespace Sphynx::Graphics::Vulkan {
 	/**
@@ -15,6 +16,7 @@ namespace Sphynx::Graphics::Vulkan {
 		 */
 		struct Details;
 		Details* details= nullptr;
+		vkSwapchain swapchain = vkSwapchain(VK_NULL_HANDLE, (VkFormat)-1, VkExtent2D());
 		vkWindow() = default;
 		static void InitGLFW();
 	public:
@@ -28,6 +30,6 @@ namespace Sphynx::Graphics::Vulkan {
 		inline bool IsRunning()const noexcept override;
 		void* GetNative() const noexcept override;
 		void* GetSurface()const noexcept;
-		void* GetSwapchain()const noexcept;
+		Swapchain* GetSwapchain()const noexcept;
 	};
 }

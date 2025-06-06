@@ -11,9 +11,6 @@
 struct Sphynx::Graphics::Vulkan::vkWindow::Details {
 	GLFWwindow* Window;
 	VkSurfaceKHR surface;
-	VkSwapchainKHR swapChain;
-	VkExtent2D swapChainExtent;
-	VkFormat swapChainImageFormat;
 };
 
 struct SwapChainSupportDetails {
@@ -164,15 +161,15 @@ Sphynx::Graphics::Vulkan::vkWindow* Sphynx::Graphics::Vulkan::vkWindow::Create(i
 		createInfo.pQueueFamilyIndices = nullptr; // Optional
 	}
 
-	if (vkCreateSwapchainKHR(vkBackend::GetDevice(), &createInfo, nullptr, &vkwindow->details->swapChain) != VK_SUCCESS) {
+	VkSwapchainKHR swapchain;
+
+	if (vkCreateSwapchainKHR(vkBackend::GetDevice(), &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
 		Logger::Fatal("failed to create swap chain!");
 		throw std::runtime_error("failed to create swap chain!");
 	}
-	vkwindow->details->swapChainImageFormat = surfaceFormat.format;
 
-	vkwindow->details->swapChainExtent = extent;
 	//Get the count from vulkan now.
-	vkGetSwapchainImagesKHR(vkBackend::GetDevice(), vkwindow->details->swapChain, &imageCount, nullptr);
+	vkwindow->swapchain = vkSwapchain(swapchain, surfaceFormat.format, extent);
 
 
 	return vkwindow;
@@ -201,7 +198,7 @@ void Sphynx::Graphics::Vulkan::vkWindow::Close() noexcept
 {
 	glfwSetWindowShouldClose(details->Window, true);
 	vkDestroySurfaceKHR(vkBackend::GetInstance(), details->surface, nullptr);
-	vkDestroySwapchainKHR(vkBackend::GetDevice(), details->swapChain, nullptr);
+	swapchain.Destroy();
 }
 
 Sphynx::Graphics::Viewport Sphynx::Graphics::Vulkan::vkWindow::GetViewport() const noexcept
@@ -229,7 +226,7 @@ void* Sphynx::Graphics::Vulkan::vkWindow::GetSurface()const noexcept
 	return (void*)details->surface;
 }
 
-void* Sphynx::Graphics::Vulkan::vkWindow::GetSwapchain() const noexcept
+Sphynx::Graphics::Swapchain* Sphynx::Graphics::Vulkan::vkWindow::GetSwapchain() const noexcept
 {
-	return (void*)details->swapChain;
+	return (Swapchain*)&swapchain;
 }

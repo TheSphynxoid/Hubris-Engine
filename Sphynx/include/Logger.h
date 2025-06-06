@@ -24,11 +24,7 @@ namespace Sphynx {
             auto now = std::chrono::system_clock::now();
             auto in_time_t = std::chrono::system_clock::to_time_t(now);
             //
-            tm timeinfo;
-            localtime_s(&timeinfo, &in_time_t);
-            std::stringstream ss;
-            ss << std::put_time(&timeinfo, "%Y-%m-%d %H:%M:%S");
-            return ss.str();
+            return fmt::format("{:%Y-%m-%d %H:%M:%S}", fmt::localtime(in_time_t));;
         }   
 
         static FILE* OpenAndReturn(std::string fileName){
@@ -106,25 +102,29 @@ namespace Sphynx {
 
         
         static void Log(const char* message) {
-            std::cout << message << std::endl;
+            const auto formatted = fmt::format("({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), message);
+            std::cout << formatted << std::endl;
             if (!LogFile) return;
-            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), message);
+            fmt::println(LogFile, "{}", formatted);
             fflush(LogFile);
         }
 
         static void Log(const std::string& message) {
-            std::cout << message << std::endl;
+            const auto formatted = fmt::format("({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), message.c_str());
+            std::cout << formatted << std::endl;
             if (!LogFile) return;
-            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), message.c_str());
+            fmt::println(LogFile, "{}", formatted);
             fflush(LogFile);
         }
 
         template<typename ...Args>
         static void Log(fmt::format_string<Args...> message, Args&&... args) {
+            //I wonder if this can be done in one operation ? Recursive formatting ?
             const auto formatted = fmt::format(message, std::forward<Args>(args)...);
-            std::cout << formatted << std::endl;
+            const auto finalFormatted = fmt::format("({})[ThreadID: {}] Info: {}\n", getCurrentTime(), std::this_thread::get_id(), formatted);
+            std::cout << finalFormatted << std::endl;
             if (!LogFile) return;
-            fmt::println(LogFile, "({})[ThreadID: {}] Info: {}", getCurrentTime(), std::this_thread::get_id(), formatted);
+            fmt::println(LogFile, "{}", finalFormatted);
             fflush(LogFile);
         }
 

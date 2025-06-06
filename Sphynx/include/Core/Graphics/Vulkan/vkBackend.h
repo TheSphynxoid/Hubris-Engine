@@ -170,6 +170,9 @@ namespace Sphynx::Graphics::Vulkan {
 
         }
     public:
+        vkBackend() = delete;
+        ~vkBackend() = delete;
+
         static void CreateInstance() noexcept {
             if(instance){
                 Logger::Log("A Vulkan Instance already exists. Attempt to create another instance ignored.");
@@ -509,6 +512,13 @@ namespace Sphynx::Graphics::Vulkan {
             }
         }
 
+        static const VkAllocationCallbacks* GetAllocator() noexcept {
+            return nullptr;
+        }
+
+        static void SetAllocator(VkAllocationCallbacks cb) /*noexcept*/ {
+            throw std::exception("Not Implemented");
+        }
 
         static void setupDebugMessenger() {
             if (!enableValidationLayers) return;
