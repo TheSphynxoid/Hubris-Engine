@@ -1,7 +1,7 @@
 #pragma once
-#ifdef SPH_LOGGER
+#ifdef HBR_LOGGER
 #else
-#define SPH_LOGGER
+#define HBR_LOGGER
 #define LOG_FILE_LIMIT 5
 #define LOG_FILE_MAX_SIZE 5 * 1024 * 1024 //5 MB is the default log file size limit.
 #include <iostream>

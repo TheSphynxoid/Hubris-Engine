@@ -1,7 +1,7 @@
 #pragma once
-#ifdef SPH_WINDOW
+#ifdef HBR_WINDOW
 #else
-#define SPH_WINDOW
+#define HBR_WINDOW
 #include "glm/glm.hpp"
 #include "Format.h"
 

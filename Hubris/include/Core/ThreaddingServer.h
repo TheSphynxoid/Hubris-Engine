@@ -1,7 +1,7 @@
 #pragma once
-#ifdef SPH_THREADSRV
+#ifdef HBR_THREADSRV
 #else
-#define SPH_THREADSRV
+#define HBR_THREADSRV
 namespace Hubris::Core {
 	class ThreaddingServer {
 		ThreaddingServer() = default;

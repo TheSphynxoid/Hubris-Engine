@@ -1,7 +1,7 @@
 #pragma once
-#ifdef SPH_THREADPOOL
+#ifdef HBR_THREADPOOL
 #else
-#define SPH_THREADPOOL
+#define HBR_THREADPOOL
 #include <vector>
 #include <atomic>
 #include <condition_variable>

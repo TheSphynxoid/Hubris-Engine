@@ -1,7 +1,7 @@
 #include "pch.h"
 #include "Engine.h"
 #include "Core/Graphics/Window.h"
-#ifdef SPH_WINDOWS
+#ifdef HBR_WINDOWS
 #include "Core/Graphics/Vulkan/vkBackend.h"
 #include "Core/Graphics/Vulkan/vkWindow.h"
 #endif
@@ -22,7 +22,7 @@ void Engine::InitGraphics(const EngineConfig & config)
 		/*break;*/
 		[[fallthrough]];
 	case RenderAPI::Vulkan:
-#ifdef SPH_APPLE
+#ifdef HBR_APPLE
 		static_assert("MoltenVK is not available");
 #endif
 		// auto name = config.ProjectName;

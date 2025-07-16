@@ -21,7 +21,7 @@
 #include <typeindex>
 #include <typeinfo>
 //END OF STD HEADERS
-//SPH HEADERS
+//HBR HEADERS
 #include "Platform.h"
 #include "Logger.h"
 #include "Error.h"
@@ -30,4 +30,4 @@
 
 #define ENUMSHIFT(n) (0x1 << n)
 
-//END OF SPH HEADER
+//END OF HBR HEADER
