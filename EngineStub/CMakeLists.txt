@@ -9,6 +9,6 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 add_library(EngineStub STATIC "Entry.h" "Entry.cpp" "Loader.h")
 
 set_target_properties(EngineStub PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(EngineStub PUBLIC SphynxEngine)
+target_link_libraries(EngineStub PUBLIC HubrisEngine)
 
 target_include_directories(EngineStub PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
