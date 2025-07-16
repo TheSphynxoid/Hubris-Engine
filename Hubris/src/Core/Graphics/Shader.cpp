@@ -6,7 +6,7 @@ using namespace Hubris;
 
 Handle<Graphics::Shader> Graphics::Shader::Create(const std::vector<char>& data, ShaderStage type)
 {
-    if constexpr (Platform == Sph_Platform::Windows) {
+    if constexpr (Platform == Hbr_Platform::Windows) {
         return new Vulkan::vkShader(data, type);
     }
 }

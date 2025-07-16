@@ -90,7 +90,7 @@ namespace Hubris {
 			static bool HasInit = false;
 			if (!HasInit) {
 				config.ThreadCount = std::thread::hardware_concurrency() - 1;
-				if constexpr (Platform == Sph_Platform::Windows || Platform == Sph_Platform::Linux) {
+				if constexpr (Platform == Hbr_Platform::Windows || Platform == Hbr_Platform::Linux) {
 					config.GraphicsBackend = RenderAPI::Vulkan;
 				}
 			}

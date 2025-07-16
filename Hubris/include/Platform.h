@@ -1,48 +1,48 @@
 // File: Hubris/include/Platform.h
 #pragma once
 
-enum class Sph_Platform : unsigned short {
+enum class Hbr_Platform : unsigned short {
     Windows, Linux, MacOS, IOS, Android, Unknown
 };
 
-[[nodiscard]] constexpr inline Sph_Platform GetPlatform() noexcept{
+[[nodiscard]] constexpr inline Hbr_Platform GetPlatform() noexcept{
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
     #define HBR_WINDOWS
     #define WIN32_LEAN_AND_MEAN 
     //#include "Windows.h"
-    return Sph_Platform::Windows;
+    return Hbr_Platform::Windows;
 #elif __APPLE__
 #include <TargetConditionals.h>
 #define HBR_APPLE
 #if TARGET_IPHONE_SIMULATOR
     #define HBR_IOS
-    return Sph_Platform::IOS; // iOS Simulator
+    return Hbr_Platform::IOS; // iOS Simulator
 #elif TARGET_OS_MACCATALYST
     #define HBR_MACOS
-    return Sph_Platform::MacOS; // Mac Catalyst
+    return Hbr_Platform::MacOS; // Mac Catalyst
 #elif TARGET_OS_IPHONE
     #define HBR_IOS
-    return Sph_Platform::IOS; // iOS device
+    return Hbr_Platform::IOS; // iOS device
 #elif TARGET_OS_MAC
     #define HBR_MACOS
-    return Sph_Platform::MacOS; // macOS
+    return Hbr_Platform::MacOS; // macOS
 #else
 #error "Unknown Apple platform"
 #endif
 #elif __ANDROID__
     #define HBR_ANDROID
-    return Sph_Platform::Android;
+    return Hbr_Platform::Android;
 #elif __linux__
     #define HBR_LINUX
-    return Sph_Platform::Linux;
+    return Hbr_Platform::Linux;
 #elif __unix__ // all unices not caught above
     #define HBR_LINUX
-    return Sph_Platform::Linux; // Assuming Unix-like systems are similar to Linux
+    return Hbr_Platform::Linux; // Assuming Unix-like systems are similar to Linux
 #elif defined(_POSIX_VERSION)
-    return Sph_Platform::Linux; // POSIX systems
+    return Hbr_Platform::Linux; // POSIX systems
 #else
-    return Sph_Platform::Unknown;
+    return Hbr_Platform::Unknown;
 #endif
 }
 
-constexpr Sph_Platform Platform = GetPlatform();
+constexpr Hbr_Platform Platform = GetPlatform();
