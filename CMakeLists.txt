@@ -1,4 +1,4 @@
-﻿# CMakeList.txt : CMake project for Sphynx-Engine, include source and define
+﻿# CMakeList.txt : CMake project for Hubris-Engine, include source and define
 # project specific logic here.
 #
 cmake_minimum_required (VERSION 3.12)
@@ -29,16 +29,16 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message("Debug Build")
 endif()
 
-project(SphynxEngine)
+project(HubrisEngine)
 
-add_subdirectory("Sphynx")
+add_subdirectory("Hubris")
 # add_subdirectory("EngineStub")
 add_subdirectory("Sandbox")
 # Add source to this project's executable.
-# add_executable (Sphynx-Engine "Sphynx-Engine.cpp" "Sphynx-Engine.h")
+# add_executable (Hubris-Engine "Hubris-Engine.cpp" "Hubris-Engine.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET SphynxEngine PROPERTY CXX_STANDARD 20)
+  set_property(TARGET HubrisEngine PROPERTY CXX_STANDARD 20)
 endif()
 
 # TODO: Add tests and install targets if needed.
