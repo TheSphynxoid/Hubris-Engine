@@ -187,7 +187,7 @@ namespace Sphynx::Graphics::Vulkan {
             vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 
             std::cout << extensionCount << " extensions supported\n";
-            auto ProjectName = Engine::GetProjectName();
+            auto& ProjectName = Engine::GetProjectName();
             VkApplicationInfo appInfo{};
             appInfo.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
             appInfo.pApplicationName = ProjectName.data();

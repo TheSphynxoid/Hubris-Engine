@@ -26,4 +26,8 @@
 #include "Logger.h"
 #include "Error.h"
 #include "Core/Utils.h"
+#include "Memory.h"
+
+#define ENUMSHIFT(n) (0x1 << n)
+
 //END OF SPH HEADER

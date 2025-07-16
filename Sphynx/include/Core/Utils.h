@@ -37,12 +37,12 @@ namespace Sphynx{
         //Safety checks.
         static_assert((buffsize > 0) && ((buffsize& (buffsize - 1)) == 0),
             "Buffer size must be a power of 2 to gain performance.");
-        static_assert((std::is_abstract_v<T>), "Abstract types can cause issues.");
-        static_assert((std::is_array_v<T>), "Cannot store arrays in the ring buffer. Although, support maybe added if a need ever arises.");
+        static_assert((!std::is_abstract_v<T>), "Abstract types can cause issues.");
+        static_assert((!std::is_array_v<T>), "Cannot store arrays in the ring buffer. Although, support maybe added if a need ever arises.");
         //Fixed-size
         std::array<T, buffsize> buffer;
-        std::atomic<T*> head{ 0 };				// Head (dequeue pointer)
-        std::atomic<T*> tail{ 0 };				// Tail (enqueue pointer)
+        std::atomic<size_t> head{ 0 };				// Head (dequeue pointer)
+        std::atomic<size_t> tail{ 0 };				// Tail (enqueue pointer)
         const size_t mask = buffsize - 1;	// Mask used for fast wrap-around
     public:
         /**
@@ -56,7 +56,7 @@ namespace Sphynx{
         void Clear() noexcept {
             head.store(0, std::memory_order_relaxed);
             tail.store(0, std::memory_order_relaxed);
-            buffer = std::array<T, buffsize>();
+            //buffer = std::array<T, buffsize>();
         }
 
         // Enqueue element into the buffer, returns false if the buffer is full

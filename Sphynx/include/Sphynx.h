@@ -17,4 +17,5 @@
 #include <Logger.h>
 #else
 #include <EntryPoint.h>
+#include <IO/ResourceManager.h>
 #endif

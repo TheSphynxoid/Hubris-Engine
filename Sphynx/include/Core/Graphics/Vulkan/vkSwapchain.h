@@ -1,6 +1,6 @@
 #pragma once
 #include "../Swapchain.h"
-#include "Core/Graphics/Vulkan/vkBackend.h"
+#include "volk.h"
 
 namespace Sphynx::Graphics::Vulkan {
 
@@ -11,10 +11,11 @@ namespace Sphynx::Graphics::Vulkan {
 		VkFormat swapChainImageFormat = VK_FORMAT_UNDEFINED;
 		uint32_t imageCount = 0;
 		std::vector<VkImage> images;
+		std::vector<VkImageView> swapChainImageViews;
 		SwapchainResult LastOperation = SwapchainResult::Success;
 	public:
-		vkSwapchain(VkSwapchainKHR swapchain, VkFormat format, VkExtent2D extent);
-		~vkSwapchain();
+		vkSwapchain(VkSwapchainKHR swapchain, VkFormat format, VkExtent2D extent) noexcept;
+		~vkSwapchain() noexcept;
 		// Inherited via Swapchain
 		SwapchainResult AcquireNextImage(uint32_t& imageIndex) override;
 		void* GetImage(uint32_t imageIndex) const override;

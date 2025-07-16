@@ -5,6 +5,7 @@
 #include <Core/ThreaddingServer.h>
 #include <Core/Graphics/Window.h>
 #include <Memory.h>
+#include <Core/EventBus.h>
 
 /// @brief The Sphynx Engine main namespace.
 namespace Sphynx {
@@ -21,6 +22,8 @@ namespace Sphynx {
 	enum class RenderAPI : unsigned short {
 		OpenGL, Vulkan, DX12, DX11, None
 	};
+
+	typedef void(*StartupCallback)();
 	/// @brief Used to configure the engine on instantiation.
 	struct EngineConfig {
 		/**
@@ -42,6 +45,8 @@ namespace Sphynx {
 		Version ProjectVersion = { 0,0,0,0 };
 
 		Graphics::Viewport WindowDimension = {0, 0};
+
+		StartupCallback StartUpCallback = nullptr;
 	};
 	/// @deprecated Here for library architure experiments, Strong possibility of removal.
 	class GraphicsManager final {
@@ -59,6 +64,7 @@ namespace Sphynx {
 		static inline Version ProjectVersion;
 		static inline Graphics::Window* window;
 		static inline std::terminate_handler originalHandler = nullptr;
+		static inline std::vector<const char*> Env = std::vector<const char*>(0);
 		static void InitGraphics(const EngineConfig& config);
 
 
@@ -106,6 +112,12 @@ namespace Sphynx {
 			InitGraphics(config);
 
 			originalHandler = std::set_terminate(Engine::Terminate);
+
+			// if (config.StartUpCallback) {
+			// 	config.StartUpCallback();
+			// }
+
+			Core::StaticEventBus<Core::OnStart>::Dispatch(Core::OnStart());
 		}
 
 		/**
@@ -116,7 +128,10 @@ namespace Sphynx {
 		 * @warning This requires the Engine to be initialized first.
 		 */
 		static void Run() {
-
+			while (window->IsRunning()) {
+				Loop();
+				Core::StaticEventBus<Core::OnUpdate>::Dispatch(Core::OnUpdate());
+			}
 		}
 		/**
 		 * @brief The Engine Executes the main loop once, then returns control to user. 
@@ -124,13 +139,17 @@ namespace Sphynx {
 		 * @warning This requires the Engine to be initialized first.
 		 */
 		static void Loop() {
-			while(window->IsRunning()){
-				window->Update();
-#pragma warning (push) 
-#pragma warning (disable: 4996)
-				_sleep(100);
-#pragma warning (pop)
-			}
+			window->Update();
+// #pragma warning (push) 
+// #pragma warning (disable: 4996)
+// 			_sleep(100);
+// #pragma warning (pop)
+		}
+
+		static void Shutdown(){
+			window->Close();
+			//TODO: Add Grahpics cleanup, this needs some work.
+			// GraphicsManager::Cleanup()
 		}
 		/**
 		 * @brief Get the Plugin Manager object. [A planned feature]
@@ -144,7 +163,7 @@ namespace Sphynx {
 		static void CreateWindow() {}
 		
 		static Graphics::Window* GetWindow() {};
-		static inline std::string GetProjectName() noexcept { return ProjectName; };
+		static inline const std::string& GetProjectName() noexcept { return ProjectName; };
 		static inline const Version& GetProjectVersion() noexcept { return ProjectVersion; };
 		// static const char** GetVkRequiredExtensions() noexcept;
 	};

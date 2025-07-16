@@ -29,13 +29,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     message("Debug Build")
 endif()
 
-if(CMAKE_CONFIGURATION_TYPES STREQUAL "Debug")
-    add_compile_definitions(DEBUG)
-    message("Debug Build")
-endif()
-
-
-
 project(SphynxEngine)
 
 add_subdirectory("Sphynx")
@@ -45,10 +38,18 @@ add_subdirectory("Sandbox")
 # add_executable (Sphynx-Engine "Sphynx-Engine.cpp" "Sphynx-Engine.h")
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET SphynxEngine PROPERTY CXX_STANDARD 17)
+  set_property(TARGET SphynxEngine PROPERTY CXX_STANDARD 20)
 endif()
 
 # TODO: Add tests and install targets if needed.
-set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
-set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
-set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
+# set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
+# set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
+# set(LIBRARY_OUTPUT_PATH "${CMAKE_BINARY_DIR}/lib")
+
+foreach(OUTPUTCONFIG IN LISTS CMAKE_CONFIGURATION_TYPES)
+    string(TOUPPER "${OUTPUTCONFIG}" OUTPUTCONFIG_UPPER)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_BINARY_DIR}/bin/${OUTPUTCONFIG}")
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_BINARY_DIR}/lib/${OUTPUTCONFIG}")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_BINARY_DIR}/lib/${OUTPUTCONFIG}")
+endforeach()
+

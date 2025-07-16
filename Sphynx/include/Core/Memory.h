@@ -6,6 +6,28 @@
 #include <map>
 
 namespace Sphynx::Core {
+	/**
+	 * @brief Handle<T> is a non-owning pointer to an engine-managed T. The engine controls the lifetime of T. Do not delete.
+	 */
+	template <typename T>
+	struct Handle {
+	private:
+		static_assert(std::is_pointer_v(T) == false);
+		static_assert(std::is_void_v(T) == false);
+		T* ptr;
+	public:
+		explicit Handle(T* p = nullptr) : ptr(p) {}
+		Handle(const Handle&) = delete;
+		Handle& operator=(const Handle&) = delete;
+
+		T* operator->() const { return ptr; }
+		T& operator*() const { return *ptr; }
+		T* get() const { return ptr; }
+		operator bool() const { return ptr != nullptr; }
+
+	};
+
+
 	struct RegionConfig {
 		bool AllowResize : 1;
 		bool JustFit : 1;
