@@ -14,23 +14,23 @@ void Engine::InitGraphics(const EngineConfig & config)
 	switch (config.GraphicsBackend)
 	{
 	case RenderAPI::DX11:
-		//break;
 		[[fallthrough]];
 	case RenderAPI::OpenGL:
 		break;
 	case RenderAPI::DX12:
-		/*break;*/
 		[[fallthrough]];
 	case RenderAPI::Vulkan:
 #ifdef HBR_APPLE
-		static_assert("MoltenVK is not available");
+		static_assert(false, "MoltenVK is not available");
 #endif
 		// auto name = config.ProjectName;
 		// Vulkan::vkWindow::Create(config.WindowDimension, name.data());
 		Vulkan::vkWindow::InitGLFW();
 		Vulkan::vkBackend::CreateInstance();
+#if defined(_DEBUG) || defined(DEBUG) 
 		//TODO: Init is supposed to be headless, i'm doing this here because i want to test everything in the graphics together.
 		window = Vulkan::vkWindow::Create(config.WindowDimension.Width, config.WindowDimension.Height, config.ProjectName);
+#endif
 		break;
 	case RenderAPI::None:
 		//Special Headless mode. I haven't yet conceptualized it.

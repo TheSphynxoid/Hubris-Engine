@@ -3,7 +3,7 @@
 #include <Core/Graphics/Vulkan/vkBackend.h>
 
 namespace Hubris::Graphics::Vulkan {
-	class vkShader : public Shader {
+	class vkShader final : public Shader {
 	private:
 		VkShaderModule shaderModule;
 		ShaderStage stage = ShaderStage::Unknown;

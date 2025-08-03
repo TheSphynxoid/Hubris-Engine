@@ -1,5 +1,5 @@
 #pragma once
-#include "Shader.h"
+#include "Core/Graphics/Shader.h"
 
 namespace Hubris::Graphics {
 	struct ShaderPack {
@@ -7,8 +7,27 @@ namespace Hubris::Graphics {
 		Shader* Fragment;
 	};
 
+	
+	enum class PipelineType {
+		Graphics,
+		Compute,
+		RayTracing,
+	};
+
+	struct PipelineDescriptor {
+    	PipelineType type;
+    	std::vector<Handle<Shader>> shaders;
+
+		// Additional config:
+		// - Vertex input layout
+		// - Blend state
+		// - Depth/stencil state
+		// - Rasterizer state
+		// - Push constants layout
+		// - Descriptor set layouts
+	};
 	class Pipeline {
 	public:
-		static Pipeline* Create(const ShaderPack& shaders);
+		static Handle<Pipeline> Create(const PipelineDescriptor& shaders);
 	};
 }

@@ -5,7 +5,7 @@ enum class Hbr_Platform : unsigned short {
     Windows, Linux, MacOS, IOS, Android, Unknown
 };
 
-[[nodiscard]] constexpr inline Hbr_Platform GetPlatform() noexcept{
+[[nodiscard]] consteval inline Hbr_Platform GetPlatform() noexcept{
 #if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__)
     #define HBR_WINDOWS
     #define WIN32_LEAN_AND_MEAN 
@@ -45,4 +45,4 @@ enum class Hbr_Platform : unsigned short {
 #endif
 }
 
-constexpr Hbr_Platform Platform = GetPlatform();
+constinit const Hbr_Platform Platform = GetPlatform();

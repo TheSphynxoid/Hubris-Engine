@@ -19,7 +19,7 @@
 #include <thread>
 
 namespace Hubris {
-    class WaitGroup {
+    class WaitGroup final {
     private:
         std::atomic<int> count{ 0 };            // Counter for tracking the number of tasks
         std::mutex mtx;                         // Mutex for coordinating condition variable

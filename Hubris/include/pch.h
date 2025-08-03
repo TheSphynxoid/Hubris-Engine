@@ -29,5 +29,7 @@
 #include "Memory.h"
 
 #define ENUMSHIFT(n) (0x1 << n)
-
+#ifdef _DEBUG
+#define DEBUG 1
+#endif
 //END OF HBR HEADER

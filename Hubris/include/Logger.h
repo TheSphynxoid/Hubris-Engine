@@ -121,13 +121,19 @@ namespace Hubris {
         static void Log(fmt::format_string<Args...> message, Args&&... args) {
             //I wonder if this can be done in one operation ? Recursive formatting ?
             const auto formatted = fmt::format(message, std::forward<Args>(args)...);
-            const auto finalFormatted = fmt::format("({})[ThreadID: {}] Info: {}\n", getCurrentTime(), std::this_thread::get_id(), formatted);
-            std::cout << finalFormatted << std::endl;
-            if (!LogFile) return;
-            fmt::println(LogFile, "{}", finalFormatted);
-            fflush(LogFile);
+            Log(formatted);
+        }
+        
+        static void DbgLog(const std::string& message){
+            Log(message);
+            __debugbreak();
         }
 
+        template<typename ...Args>
+        static void DbgLog(fmt::format_string<Args...> message, Args&&... args){
+            Log(message, std::forward(args)...);
+            __debugbreak();
+        }
         /*template<typename ...Args>
         static void Fatal(fmt::string_view message, Args&&... args) {
             const auto formatted = fmt::format(message, std::forward<Args>(args)...);

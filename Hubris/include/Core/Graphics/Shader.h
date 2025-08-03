@@ -24,6 +24,7 @@ namespace Hubris::Graphics {
 		 * @brief Override if you have an implementation specific validation method, this simply checks if the stage is not ShaderStage::Unknown.
 		 */
 		virtual bool Valid()const noexcept {
+			[[maybe_unused]]Hubris::Shared<int[3]> t = Hubris::Shared<int[3]>();
 			return stage != ShaderStage::Unknown;
 		};
 		static Handle<Shader> Create(const std::vector<char>& data, ShaderStage type);

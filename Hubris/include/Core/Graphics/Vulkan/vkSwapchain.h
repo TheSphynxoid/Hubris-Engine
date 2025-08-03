@@ -4,7 +4,7 @@
 
 namespace Hubris::Graphics::Vulkan {
 
-	class vkSwapchain : public Hubris::Graphics::Swapchain {
+	class vkSwapchain final : public Hubris::Graphics::Swapchain {
 	private:
 		VkSwapchainKHR handle = VK_NULL_HANDLE;
 		VkExtent2D swapChainExtent = VkExtent2D(0, 0);

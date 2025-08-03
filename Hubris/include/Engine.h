@@ -97,6 +97,7 @@ namespace Hubris {
 			config.ProjectName = ProjectName;
 			config.ProjectVersion = ProjectVersion;
 			config.WindowDimension = {800, 600};
+
 			return config;
 		}
 		/**
