@@ -1,7 +1,4 @@
 #pragma once
-#ifdef HBR_THREADPOOL
-#else
-#define HBR_THREADPOOL
 #include <vector>
 #include <atomic>
 #include <condition_variable>
@@ -17,6 +14,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <thread>
+#include <functional>
 
 namespace Hubris {
     class WaitGroup final {
@@ -77,9 +75,21 @@ namespace Hubris {
 						// Wait for a task to be assigned
 						// Execute the task
 					}
-					});
+				});
 			}
+        }
+
+        /**
+         * @brief Queues a job to be executed by the threadpool, it may get executed by any thread in the pool.
+         * 
+         * (planned behaviour)
+         * If wg is not null, the job is wrapped in a lambda that handles calling WaitGroup.Add() and WaitGroup.Done() appropriately.
+         * 
+         * @param wg This argument is here to support the upcoming (and completed) waitgroup  
+         * @param job the job to be added to the Queue, it may execute on any thread in the pool.
+         */
+        static void QueueJob(WaitGroup* wg, std::function<void()> job){
+
         }
     };
 }
-#endif

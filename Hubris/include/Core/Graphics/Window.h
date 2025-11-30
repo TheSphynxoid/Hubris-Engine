@@ -11,10 +11,11 @@
 namespace Hubris::Graphics
 {
     /**
-     * @brief Screen-space Dimensions.
+     * @brief Screen-space Dimensions. The Depth Values are used by the pipelines 
      */
     struct Viewport{ 
-        int Width, Height, Xpos, Ypos;
+        int Width, Height;
+        float Xpos = 0.0f, Ypos = 0.0f, MinDepth = 0.0f, MaxDepth = 1.0f;
     };
     /**
      * @brief 

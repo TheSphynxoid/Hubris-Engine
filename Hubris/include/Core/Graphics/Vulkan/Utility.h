@@ -1,8 +1,29 @@
 #pragma once
 #include "../Format.h"
+#include "../Shader.h"
 #include "volk.h"
 
 namespace Hubris::Graphics::Vulkan {
+    inline constexpr VkShaderStageFlagBits VkShaderStageToFlags(const ShaderStage& stage) noexcept{
+        switch (stage)
+        {
+        case ShaderStage::Vertex:
+            return VK_SHADER_STAGE_VERTEX_BIT;
+        case ShaderStage::Fragment:
+            return VK_SHADER_STAGE_FRAGMENT_BIT;
+        case ShaderStage::Geometry:
+            return VK_SHADER_STAGE_GEOMETRY_BIT;
+        case ShaderStage::TessellationControl:
+            return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+        case ShaderStage::TessellationEvaluation:
+            return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+        case ShaderStage::Compute:
+            return VK_SHADER_STAGE_COMPUTE_BIT;
+        default:
+            break;
+        }
+    }
+
     // Conversion from Format to VkFormat
     constexpr VkFormat FormatToVkFormat(Format format) noexcept {
         switch (format) {

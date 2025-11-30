@@ -1,5 +1,6 @@
 #pragma once
 #include "Core/Graphics/Pipeline.h"
+#include "volk.h"
 
 namespace Hubris::Graphics
 {

@@ -204,17 +204,6 @@ namespace Hubris{
 
         return ctr;
     }
-    /// @brief Allocates and constructs both the ControlBlock and the Object T and returns the instanciated controlblock
-    /// @tparam ...Args Argument Types for the Constructor of T
-    /// @param ...args  Argument values to be passed to the constructor of T::T(Args&& ...args)
-    /// @return a fully intialized controlblock pointing at the newly constructed T
-    template<typename T, typename ...Args>
-    constexpr ControlBlock* CoAllocate(Args&& ...args){
-        constexpr size_t Toffset =  alignof(ControlBlock) > alignof(T) ? padded_size<ControlBlock>() : 0;
-        ControlBlock ctr = CoAllocate_Unsafe<T>();
-        Construct_T_Inplace<Args>(ctr.raw, std::forward(args)...);
-        return ctr;
-    }
 
     /// @brief Constructs any object at location (placment new) with the specified arguments.
     /// @tparam T Type to be constructed
@@ -224,8 +213,21 @@ namespace Hubris{
     template<typename T, typename ...Args>
     constexpr void Construct_T_Inplace(void* placement, Args&& ...args){
         // static_assert(std::is_pointer<T>)
-        new(placement)std::remove_cv_t<T>(std::forward<Args>(args)...);
+        new(placement)std::remove_cvref_t<T>(std::forward<Args>(args)...);
     }
+
+    /// @brief Allocates and constructs both the ControlBlock and the Object T and returns the instanciated controlblock
+    /// @tparam ...Args Argument Types for the Constructor of T
+    /// @param ...args  Argument values to be passed to the constructor of T::T(Args&& ...args)
+    /// @return a fully intialized controlblock pointing at the newly constructed T
+    template<typename T, typename ...Args>
+    constexpr ControlBlock* CoAllocate(Args&& ...args){
+        constexpr size_t Toffset =  alignof(ControlBlock) > alignof(T) ? padded_size<ControlBlock>() : 0;
+        ControlBlock* ctr = CoAllocate_Unsafe<T>();
+        Construct_T_Inplace<Args...>(ctr->raw, std::forward<Args>(args)...);
+        return ctr;
+    }
+
     // template<typename T>
     // constexpr void CoDelete(ControlBlock* crt){
     //     assert(crt->raw && "ControlBlock is observing no object");
@@ -269,7 +271,7 @@ namespace Hubris{
         template<typename ...Args>
         constexpr Shared(Args&& ...args){
             //For now, CoAllocates blocks unbounded arrays. So calling dtor is possible by indexing the array.
-            ctr_blk = CoAllocate<T>(std::forward<Args>(args)...);
+            ctr_blk = CoAllocate<std::remove_cv_t<T>>(std::forward<Args>(args)...);
         }
 
         constexpr explicit Shared(Weak<T>&& promote) noexcept{
@@ -410,7 +412,7 @@ namespace Hubris{
         ControlBlock* ctr_blk;
     public:
         constexpr Weak(const Shared<T>& s) noexcept{
-            static_assert(s.ctr_blk != nullptr, "Attempted to create a weak reference from an empty Shared");
+            // static_assert(s.ctr_blk != nullptr, "Attempted to create a weak reference from an empty Shared");
             ctr_blk = s.ctr_blk;
             //This is memory order release instead of relax because it is creating a Weak reference and it must be valid upon return.
             //in the case of other operation, whoever deletes the control block doesn't matter as long it is deleted,

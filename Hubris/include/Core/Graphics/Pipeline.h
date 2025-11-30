@@ -17,7 +17,7 @@ namespace Hubris::Graphics {
 	struct PipelineDescriptor {
     	PipelineType type;
     	std::vector<Handle<Shader>> shaders;
-
+		
 		// Additional config:
 		// - Vertex input layout
 		// - Blend state

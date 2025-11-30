@@ -36,7 +36,7 @@ namespace Hubris::Graphics
         virtual void SetData(const void* data, uint32_t size) = 0;
         virtual void Resize(uint32_t width, uint32_t height) = 0;
 
-        static std::shared_ptr<Image> Create(uint32_t width, uint32_t height,
+        static Handle<Image> Create(uint32_t width, uint32_t height,
             Format format, uint32_t mipLevels = 1, ImageMemoryType memoryType = ImageMemoryType::GPU_LOCAL);
 
     protected:

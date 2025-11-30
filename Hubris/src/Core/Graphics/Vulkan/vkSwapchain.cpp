@@ -10,7 +10,7 @@ Hubris::Graphics::Vulkan::vkSwapchain::vkSwapchain(VkSwapchainKHR swapchain, VkF
     swapChainExtent(extent), swapChainImageFormat(format)
 {
     if (swapchain == VK_NULL_HANDLE) {
-        Logger::Log("VulkanSwapchain: default-constructed into invalid state.");
+        Logger::Log("VulkanSwapchain: default-constructed into an incomplete state.");
         return;
     }
     vkGetSwapchainImagesKHR(vkBackend::GetDevice(), swapchain, &imageCount, nullptr);
