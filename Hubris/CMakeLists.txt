@@ -54,7 +54,8 @@ target_link_libraries(HubrisEngine PRIVATE glfw)
 target_link_libraries(HubrisEngine PUBLIC glm::glm)
 
 # target_link_libraries(HubrisEngine PRIVATE SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-opt SPIRV-Tools-reduce glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
-target_link_libraries(HubrisEngine PRIVATE glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
+# target_link_libraries(HubrisEngine PRIVATE glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
+target_link_libraries(HubrisEngine PRIVATE glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV)
 
 # find_package(OpenMP REQUIRED)
 

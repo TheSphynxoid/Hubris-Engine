@@ -1,6 +1,7 @@
 #pragma once
 #include "../Format.h"
 #include "../Shader.h"
+#include "../Pipeline.h"
 #include "volk.h"
 
 namespace Hubris::Graphics::Vulkan {
@@ -22,6 +23,12 @@ namespace Hubris::Graphics::Vulkan {
         default:
             break;
         }
+    }
+
+    inline constexpr VkPrimitiveTopology ToVkPrimitiveTopology(const PrimitiveTopology& topology) noexcept {
+        /** Hubris' PrimitiveTopology is currently a 1:1 of vulkan's enum. */
+        /**This function Simply Converts by casting, It exists in case the engine breaks compatibility with vulkan. */
+        return (VkPrimitiveTopology)topology;
     }
 
     // Conversion from Format to VkFormat

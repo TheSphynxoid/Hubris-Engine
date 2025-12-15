@@ -24,6 +24,6 @@ namespace Hubris::Graphics::Vulkan {
 		size_t GetImageCount() const override;
 		virtual Format GetImageFormat() const noexcept override;
 		virtual bool IsValid() const noexcept override;
-		virtual void Destroy() noexcept;
+		virtual void Destroy() noexcept override;
 	};
 }

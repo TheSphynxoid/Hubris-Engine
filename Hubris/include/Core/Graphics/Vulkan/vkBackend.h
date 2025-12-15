@@ -73,7 +73,8 @@ namespace Hubris::Graphics::Vulkan {
             VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
             VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
             VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-            VK_KHR_SPIRV_1_4_EXTENSION_NAME
+            VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+            
         };
 
         static inline const std::vector<const char*> validationLayers = {
@@ -301,6 +302,9 @@ namespace Hubris::Graphics::Vulkan {
             deviceCreateInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
             deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 #endif
+
+            
+
             if(vkCreateDevice(bestDev.vkPhysicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS){
                 Logger::Log("(vk) Unable to create device.");
                 return ErrorCode::FAILED;
