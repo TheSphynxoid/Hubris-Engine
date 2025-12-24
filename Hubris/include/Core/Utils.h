@@ -1,3 +1,4 @@
+#pragma once
 #include <stdint.h>		// for uint32_t
 #include <limits.h>		// for CHAR_BIT
 // #define NDEBUG
@@ -6,6 +7,34 @@
 #include <type_traits>
 
 //
+
+template<typename E>
+constexpr auto ToUnderlying(E e) noexcept {
+    return static_cast<std::underlying_type_t<E>>(e);
+}
+
+#define ENABLE_ENUM_FLAGS(Enum)                                      \
+constexpr Enum operator|(Enum lhs, Enum rhs) noexcept {              \
+    return static_cast<Enum>(ToUnderlying(lhs) | ToUnderlying(rhs)); \
+}                                                                    \
+constexpr Enum operator&(Enum lhs, Enum rhs) noexcept {              \
+    return static_cast<Enum>(ToUnderlying(lhs) & ToUnderlying(rhs)); \
+}                                                                    \
+constexpr Enum operator^(Enum lhs, Enum rhs) noexcept {              \
+    return static_cast<Enum>(ToUnderlying(lhs) ^ ToUnderlying(rhs)); \
+}                                                                    \
+constexpr Enum operator~(Enum e) noexcept {                           \
+    return static_cast<Enum>(~ToUnderlying(e));                      \
+}                                                                    \
+constexpr Enum& operator|=(Enum& lhs, Enum rhs) noexcept {           \
+    return lhs = lhs | rhs;                                          \
+}                                                                    \
+constexpr Enum& operator&=(Enum& lhs, Enum rhs) noexcept {           \
+    return lhs = lhs & rhs;                                          \
+}                                                                    \
+constexpr Enum& operator^=(Enum& lhs, Enum rhs) noexcept {           \
+    return lhs = lhs ^ rhs;                                          \
+}
 
 static inline uint32_t rotl32(uint32_t n, unsigned int c)
 {

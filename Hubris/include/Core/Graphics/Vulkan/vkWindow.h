@@ -15,6 +15,7 @@ namespace Hubris::Graphics::Vulkan {
 		 * @brief This opaque struct contains implementation details to avoid exposing vulkan to user codebase.
 		 */
 		struct Details;
+		//TODO: Expose Natives.
 		Details* details= nullptr;
 		vkSwapchain swapchain = vkSwapchain(VK_NULL_HANDLE, (VkFormat)-1, VkExtent2D());
 		vkWindow() = default;

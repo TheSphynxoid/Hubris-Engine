@@ -46,3 +46,7 @@ enum class Hbr_Platform : unsigned short {
 }
 
 constinit const Hbr_Platform Platform = GetPlatform();
+
+enum class RenderAPI : unsigned short {
+	OpenGL, Vulkan, DX12, DX11, None
+};

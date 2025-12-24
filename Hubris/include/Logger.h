@@ -13,6 +13,7 @@
 #include <unordered_map>
 #include "fmt/core.h"
 #include <fmt/std.h>
+#include <fmt/chrono.h>
 
 namespace Hubris {
     class Logger {
@@ -21,11 +22,11 @@ namespace Hubris {
         static inline FILE* LogFile = nullptr;
     
         static std::string getCurrentTime() {
-            auto now = std::chrono::system_clock::now();
-            auto in_time_t = std::chrono::system_clock::to_time_t(now);
-            //
-            return fmt::format("{:%Y-%m-%d %H:%M:%S}", fmt::localtime(in_time_t));;
-        }   
+            return fmt::format(
+                "{:%Y-%m-%d %H:%M:%S}",
+                std::chrono::system_clock::now()
+            );
+        }
 
         static FILE* OpenAndReturn(std::string fileName){
             FILE* f;

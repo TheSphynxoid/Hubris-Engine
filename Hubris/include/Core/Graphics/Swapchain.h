@@ -3,22 +3,6 @@
 #include "Core/Graphics/Format.h"
 
 namespace Hubris::Graphics {
-
-    enum class PresentMode : unsigned char {
-        Immediate,
-        Mailbox,
-        Fifo,
-        FifoRelaxed
-    };
-
-    enum class SwapchainResult : unsigned char {
-        Success,
-        Timeout,
-        Suboptimal,
-        OutOfDate,
-        Error
-    };
-
     class Swapchain {
     public:
         virtual ~Swapchain() = default;

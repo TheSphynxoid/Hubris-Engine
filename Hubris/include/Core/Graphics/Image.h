@@ -1,27 +1,8 @@
 #pragma once
-#include "Core/Graphics/Format.h"
+#include "Core/Graphics/Enums.h"
 
 namespace Hubris::Graphics
 {
-    enum class ImageLayout {
-        UNDEFINED,
-        COLOR_ATTACHMENT,
-        DEPTH_STENCIL_ATTACHMENT,
-        SHADER_READ_ONLY,
-        TRANSFER_SRC,
-        TRANSFER_DST
-    };
-
-    enum class ImageMemoryType {
-        GPU_LOCAL,
-        CPU_VISIBLE,
-        CPU_TO_GPU
-    };
-
-    enum class Swizzle : unsigned char {
-        X, Y, Z, W
-    };
-
     class Image {
     public:
         virtual ~Image() = default;

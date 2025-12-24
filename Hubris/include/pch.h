@@ -20,6 +20,7 @@
 #include <queue>
 #include <typeindex>
 #include <typeinfo>
+#include <type_traits>
 //END OF STD HEADERS
 //HBR HEADERS
 #include "Platform.h"

@@ -19,9 +19,6 @@ namespace Hubris {
 	 * This group contains the Engine and its configuration details.
 	 * @{
 	 */
-	enum class RenderAPI : unsigned short {
-		OpenGL, Vulkan, DX12, DX11, None
-	};
 
 	typedef void(*StartupCallback)();
 	/// @brief Used to configure the engine on instantiation.
@@ -169,5 +166,8 @@ namespace Hubris {
 		// static const char** GetVkRequiredExtensions() noexcept;
 	};
 	
+	template<RenderAPI backend, typename Obj>
+	struct NativeHandle{};
+
 	/** @} */ // End of EngineGroup
 }
