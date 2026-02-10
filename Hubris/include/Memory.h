@@ -347,7 +347,7 @@ namespace Hubris{
                         std::destroy_at(std::addressof(t));
                     });
                     ctr_blk->raw = nullptr;
-                    // }
+
                     if (ctr_blk->weak_count.load(std::memory_order_acq_rel) == 0) {
                         auto loc = ctr_blk->BaseLocation;
                         auto align_val = std::align_val_t{ctr_blk->alloc_align};

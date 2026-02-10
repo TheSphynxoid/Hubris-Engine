@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "Core/Graphics/Enums.h"
 #include "Core/Graphics/Format.h"
 
 namespace Hubris::Graphics {

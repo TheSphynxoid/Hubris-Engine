@@ -25,6 +25,15 @@ namespace Hubris::Graphics
     };
     ENABLE_ENUM_FLAGS(Swizzle);
 
+	typedef Swizzle Component;
+
+	template<size_t flagWidth>
+	struct FlagSet{
+		std::bitset<flagWidth> set;
+	};
+
+	const Component AllComponents = Component::X | Component::Y | Component::Z | Component::W;
+
     enum class PipelineType : unsigned char {
 		Graphics,
 		Compute,

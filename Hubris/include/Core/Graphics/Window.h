@@ -1,9 +1,6 @@
 #pragma once
-#ifdef HBR_WINDOW
-#else
-#define HBR_WINDOW
-#include "glm/glm.hpp"
 #include "Format.h"
+#include "Structs.h"
 #include "Platform.h"
 
 /**
@@ -11,13 +8,6 @@
  */
 namespace Hubris::Graphics
 {
-    /**
-     * @brief Screen-space Dimensions. The Depth Values are used by the pipelines 
-     */
-    struct Viewport{ 
-        int Width, Height;
-        float Xpos = 0.0f, Ypos = 0.0f, MinDepth = 0.0f, MaxDepth = 1.0f;
-    };
     /**
      * @brief 
      */
@@ -58,5 +48,3 @@ namespace Hubris::Graphics
         virtual void* GetNative()const noexcept = 0;
     };
 } // namespace Hubris::Graphics
-
-#endif

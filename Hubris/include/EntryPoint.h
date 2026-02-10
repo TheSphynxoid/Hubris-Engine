@@ -1,3 +1,28 @@
+/**
+ * @file EntryPoint.h
+ * @author TheSphynx
+ * @brief The reason this file exists it to allow multiple modals of executions,
+ * The engine will "Hijack" the main (Static lib) and return the call to the user through run(),
+ * 2) Engine Controlled loop (Relying only on the EventBus)
+ * 3) a mix of both, the Engine handles entry, 
+ * then calls the user run without calling the looping mechanism
+ * @code {.cpp}
+ * int run(int argc, char** argv){
+    Hubris::EngineConfig config = Hubris::Engine::GetPlatformConfig("Sandbox", { 0,0,0,1 });
+    Hubris::Core::StaticEventBus<Hubris::Core::OnStart>::Subscribe(&OnStart);
+    Hubris::Engine::Init(config);
+    Hubris::Engine::Run(); //Engine::Run() retuns control to the engine.
+    
+    //Hubris::Engine::CreateWindow()
+    return 0;
+    }
+ * @endcode
+ * @version 0.1
+ * @date 2025-12-25
+ * 
+ * @copyright Copyright (c) 2025
+ * 
+ */
 #pragma once
 #include <iostream>
 #include <Engine.h>

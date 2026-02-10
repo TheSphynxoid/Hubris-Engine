@@ -196,7 +196,7 @@ namespace Hubris::Graphics::Vulkan {
             appInfo.applicationVersion = VK_MAKE_API_VERSION(pVersion.Variant, pVersion.Major, pVersion.Minor, pVersion.Patch);
             appInfo.pEngineName = "Hubris Engine";
             appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-            appInfo.apiVersion = VK_API_VERSION_1_3;
+            appInfo.apiVersion = VK_API_VERSION_1_4;
 
             VkInstanceCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;

@@ -20,7 +20,8 @@ namespace Hubris {
 	 * @{
 	 */
 
-	typedef void(*StartupCallback)();
+	/// @
+	// typedef void(*StartupCallback)();
 	/// @brief Used to configure the engine on instantiation.
 	struct EngineConfig {
 		/**
@@ -43,7 +44,7 @@ namespace Hubris {
 
 		Graphics::Viewport WindowDimension = {0, 0};
 
-		StartupCallback StartUpCallback = nullptr;
+		// StartupCallback StartUpCallback = nullptr;
 	};
 	/// @deprecated Here for library architure experiments, Strong possibility of removal.
 	class GraphicsManager final {
@@ -165,9 +166,5 @@ namespace Hubris {
 		static inline const Version& GetProjectVersion() noexcept { return ProjectVersion; };
 		// static const char** GetVkRequiredExtensions() noexcept;
 	};
-	
-	template<RenderAPI backend, typename Obj>
-	struct NativeHandle{};
-
 	/** @} */ // End of EngineGroup
 }

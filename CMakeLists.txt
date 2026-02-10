@@ -31,16 +31,6 @@ endif()
 
 project(HubrisEngine)
 
-add_subdirectory("Hubris")
-# add_subdirectory("EngineStub")
-add_subdirectory("Sandbox")
-# Add source to this project's executable.
-# add_executable (Hubris-Engine "Hubris-Engine.cpp" "Hubris-Engine.h")
-
-if (CMAKE_VERSION VERSION_GREATER 3.12)
-  set_property(TARGET HubrisEngine PROPERTY CXX_STANDARD 20)
-endif()
-
 # TODO: Add tests and install targets if needed.
 # set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
 # set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
@@ -53,3 +43,32 @@ foreach(OUTPUTCONFIG IN LISTS CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG_UPPER} "${CMAKE_BINARY_DIR}/lib/${OUTPUTCONFIG}")
 endforeach()
 
+# Define shader compilation function before subdirectories
+function (add_slang_shader_target TARGET)
+  cmake_parse_arguments ("SHADER" "" "" "SOURCES" ${ARGN})
+  set (SHADERS_DIR ${CMAKE_CURRENT_LIST_DIR}/shaders)
+  set (ENTRY_POINTS -entry vertMain -entry fragMain)
+  add_custom_command (
+          OUTPUT ${SHADERS_DIR}
+          COMMAND ${CMAKE_COMMAND} -E make_directory ${SHADERS_DIR}
+  )
+  add_custom_command (
+          OUTPUT  ${SHADERS_DIR}/slang.spv
+          COMMAND ${SLANGC_EXECUTABLE} ${SHADER_SOURCES} -target spirv -profile spirv_1_4 -emit-spirv-directly -fvk-use-entrypoint-name ${ENTRY_POINTS} -o slang.spv
+          WORKING_DIRECTORY ${SHADERS_DIR}
+          DEPENDS ${SHADERS_DIR} ${SHADER_SOURCES}
+          COMMENT "Compiling Slang Shaders"
+          VERBATIM
+  )
+  add_custom_target (${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
+endfunction()
+
+add_subdirectory("Hubris")
+# add_subdirectory("EngineStub")
+add_subdirectory("Sandbox")
+# Add source to this project's executable.
+# add_executable (Hubris-Engine "Hubris-Engine.cpp" "Hubris-Engine.h")
+
+if (CMAKE_VERSION VERSION_GREATER 3.12)
+  set_property(TARGET HubrisEngine PROPERTY CXX_STANDARD 20)
+endif()
