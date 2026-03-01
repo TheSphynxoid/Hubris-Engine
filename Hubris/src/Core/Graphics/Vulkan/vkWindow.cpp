@@ -8,7 +8,7 @@
  * @internal
  * @private
  */
-struct Hubris::Graphics::Vulkan::vkWindow::Details {
+struct Hubris::Graphics::Vulkan::VulkanWindow::Details {
 	GLFWwindow* Window;
 	VkSurfaceKHR surface;
 };
@@ -61,7 +61,7 @@ VkExtent2D ChooseSwapExtent(GLFWwindow* window, const VkSurfaceCapabilitiesKHR& 
     }
 }
 
-void Hubris::Graphics::Vulkan::vkWindow::InitGLFW()
+void Hubris::Graphics::Vulkan::VulkanWindow::InitGLFW()
 {
 	if(glfwInit() == GLFW_FALSE){
 		Logger::Log("Failed to initialize GLFW");
@@ -72,7 +72,7 @@ void Hubris::Graphics::Vulkan::vkWindow::InitGLFW()
 	glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 }
 
-Hubris::Graphics::Vulkan::vkWindow* Hubris::Graphics::Vulkan::vkWindow::Create(int Width, int Height, const std::string& title)
+Hubris::Graphics::Vulkan::VulkanWindow* Hubris::Graphics::Vulkan::VulkanWindow::Create(int Width, int Height, const std::string& title)
 {		
 	GLFWwindow* win;
 	win = glfwCreateWindow(Width, Height, title.c_str(), nullptr, nullptr);
@@ -83,21 +83,21 @@ Hubris::Graphics::Vulkan::vkWindow* Hubris::Graphics::Vulkan::vkWindow::Create(i
 	}
 	glfwShowWindow(win);
 	VkSurfaceKHR surface;
-    if (glfwCreateWindowSurface(vkBackend::GetInstance(), win, nullptr, &surface) != VK_SUCCESS) {
+	if (glfwCreateWindowSurface(VulkanBackend::GetInstance(), win, nullptr, &surface) != VK_SUCCESS) {
 		Logger::Fatal("Failed to create a window surface.");
 		const char* desc;
 		glfwGetError(&desc);
 		Logger::Fatal("GLFW: {}", desc);
 		return nullptr;
     }
-	vkWindow* vkwindow = new vkWindow();
+	VulkanWindow* vkwindow = new VulkanWindow();
 	vkwindow->details = new Details();
 	vkwindow->details->Window = win;
 	vkwindow->details->surface = surface;
 	glfwSetWindowUserPointer(win, vkwindow->details);
-	vkBackend::Init(vkwindow->details->surface);
+	VulkanBackend::Init(vkwindow->details->surface);
 
-	VkPhysicalDevice pdevice = vkBackend::GetPhysicalDevice();
+	VkPhysicalDevice pdevice = VulkanBackend::GetPhysicalDevice();
 	//Creating the swapchain.
 	SwapChainSupportDetails swapDetails;
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(pdevice, surface, &swapDetails.capabilities);
@@ -150,10 +150,10 @@ Hubris::Graphics::Vulkan::vkWindow* Hubris::Graphics::Vulkan::vkWindow::Create(i
 	createInfo.presentMode = presentMode;
 	createInfo.clipped = VK_TRUE;
 
-	if (vkRenderer::GetGraphicsQueue() != vkRenderer::GetPresentQueue()) {
+	if (VulkanRenderer::GetGraphicsQueue() != VulkanRenderer::GetPresentQueue()) {
 		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
 		createInfo.queueFamilyIndexCount = 2;
-		static uint32_t queueFamilyIndices[] = { vkRenderer::GetGraphicsQueueIndex(), vkRenderer::GetPresentQueueIndex() };
+		static uint32_t queueFamilyIndices[] = { VulkanRenderer::GetGraphicsQueueIndex(), VulkanRenderer::GetPresentQueueIndex() };
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
 	} else {
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -163,70 +163,70 @@ Hubris::Graphics::Vulkan::vkWindow* Hubris::Graphics::Vulkan::vkWindow::Create(i
 
 	VkSwapchainKHR swapchain;
 
-	if (vkCreateSwapchainKHR(vkBackend::GetDevice(), &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
+	if (vkCreateSwapchainKHR(VulkanBackend::GetDevice(), &createInfo, nullptr, &swapchain) != VK_SUCCESS) {
 		Logger::Fatal("failed to create swap chain!");
 		throw std::runtime_error("failed to create swap chain!");
 	}
 
 	//Get the count from vulkan now.
-	vkwindow->swapchain = vkSwapchain(swapchain, surfaceFormat.format, extent);
+	vkwindow->swapchain = VulkanSwapchain(swapchain, surfaceFormat.format, extent);
 
 
 	return vkwindow;
 }
 
-Hubris::Graphics::Vulkan::vkWindow::~vkWindow()
+Hubris::Graphics::Vulkan::VulkanWindow::~VulkanWindow()
 {
 	Close();
 	delete details;
 }
 
-void Hubris::Graphics::Vulkan::vkWindow::Init()
+void Hubris::Graphics::Vulkan::VulkanWindow::Init()
 {
 	//TODO: add Hooks to the window.
 	
 }
 
-void Hubris::Graphics::Vulkan::vkWindow::Update() noexcept
+void Hubris::Graphics::Vulkan::VulkanWindow::Update() noexcept
 {
 	while (!glfwWindowShouldClose(details->Window)) {
 		glfwPollEvents();
 	}
 }
 
-void Hubris::Graphics::Vulkan::vkWindow::Close() noexcept
+void Hubris::Graphics::Vulkan::VulkanWindow::Close() noexcept
 {
 	glfwSetWindowShouldClose(details->Window, true);
-	vkDestroySurfaceKHR(vkBackend::GetInstance(), details->surface, nullptr);
+	vkDestroySurfaceKHR(VulkanBackend::GetInstance(), details->surface, nullptr);
 	swapchain.Destroy();
 }
 
-Hubris::Graphics::Viewport Hubris::Graphics::Vulkan::vkWindow::GetViewport() const noexcept
+Hubris::Graphics::Viewport Hubris::Graphics::Vulkan::VulkanWindow::GetViewport() const noexcept
 {
     return Viewport();
 }
 
-bool Hubris::Graphics::Vulkan::vkWindow::IsValid() const noexcept
+bool Hubris::Graphics::Vulkan::VulkanWindow::IsValid() const noexcept
 {
     return glfwWindowShouldClose(details->Window);
 }
 
-bool Hubris::Graphics::Vulkan::vkWindow::IsRunning() const noexcept 
+bool Hubris::Graphics::Vulkan::VulkanWindow::IsRunning() const noexcept 
 {
 	return !glfwWindowShouldClose(details->Window);
 }
 
-void* Hubris::Graphics::Vulkan::vkWindow::GetNative() const noexcept
+void* Hubris::Graphics::Vulkan::VulkanWindow::GetNative() const noexcept
 {
     return (void*)details->Window;
 }
 
-void* Hubris::Graphics::Vulkan::vkWindow::GetSurface()const noexcept
+void* Hubris::Graphics::Vulkan::VulkanWindow::GetSurface()const noexcept
 {
 	return (void*)details->surface;
 }
 
-Hubris::Graphics::Swapchain* Hubris::Graphics::Vulkan::vkWindow::GetSwapchain() const noexcept
+Hubris::Graphics::Swapchain* Hubris::Graphics::Vulkan::VulkanWindow::GetSwapchain() const noexcept
 {
 	return (Swapchain*)&swapchain;
 }

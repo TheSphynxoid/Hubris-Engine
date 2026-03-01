@@ -13,5 +13,6 @@
     "imgui",
     "stb",
     "tinyobjloader"
-  ]
+  ],
+  "builtin-baseline": "f4155cdf81be1897350f8fab082fdecc0d4469fd"
 }

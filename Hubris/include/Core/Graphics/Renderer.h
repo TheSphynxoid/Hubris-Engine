@@ -2,6 +2,6 @@
 
 namespace Hubris::Graphics{
     class Renderer {
-
+        
     };
 }

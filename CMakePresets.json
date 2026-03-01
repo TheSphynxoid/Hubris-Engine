@@ -1,0 +1,29 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "MSVC-VS2026-x64",
+            "displayName": "Visual Studio Community 2026 Release - x86_amd64",
+            "description": "Using compilers for Visual Studio 18 2026 (x86_x64 architecture)",
+            "generator": "Visual Studio 18 2026",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "MSVC-VS2026-x64-Debug",
+            "displayName": "Visual Studio Community 2026 Release - x86_amd64 - Debug",
+            "configurePreset": "MSVC-VS2026-x64",
+            "configuration": "Debug"
+        }
+    ]
+}

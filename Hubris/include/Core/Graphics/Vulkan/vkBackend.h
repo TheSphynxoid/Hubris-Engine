@@ -21,7 +21,7 @@ namespace Hubris::Graphics::Vulkan {
         uint32_t VendorID = 0; ///< The Vendor ID, used for caching. @hideinitializer
         uint32_t APIVersion = 0; ///< %Vulkan API version, used for cache validation. @hideinitializer
         uint32_t DriverVersion = 0; ///< The Driver version, used for cache validation. @hideinitializer
-        
+        uint32_t MaxColorAttachments = 0; ///
         unsigned int Score = 0; ///< The Computed score of the device. @hideinitializer
         bool ExtSupported = false; ///< Indicates if the Device can be used. @hideinitializer
         bool RayTracingCapable = false; ///< Is the %Device Capable of Raytracing. @hideinitializer
@@ -43,7 +43,7 @@ namespace Hubris::Graphics::Vulkan {
     /**
      * @brief The Vulkan backend manager.
      */
-    class vkBackend final {
+    class VulkanBackend final {
     private:
         /**
          * @brief This struct is used for initializing device.
@@ -74,7 +74,6 @@ namespace Hubris::Graphics::Vulkan {
             VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
             VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
             VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-            
         };
 
         static inline const std::vector<const char*> validationLayers = {
@@ -105,6 +104,7 @@ namespace Hubris::Graphics::Vulkan {
             device.ShaderInt64 = features.shaderInt64;
             device.SparceBinding = features.sparseBinding;
             device.APIVersion = prop.apiVersion;
+            device.MaxColorAttachments = prop.limits.maxColorAttachments;
             //This is redundent but is used to detect raytracing specific extension, Remove if possible.
             static const std::vector<const char*> requiredRTExtensions = {
                 // Required ray tracing extensions
@@ -171,8 +171,8 @@ namespace Hubris::Graphics::Vulkan {
 
         }
     public:
-        vkBackend() = delete;
-        ~vkBackend() = delete;
+        VulkanBackend() = delete;
+        ~VulkanBackend() = delete;
 
         static void CreateInstance() noexcept {
             if(instance){
@@ -196,7 +196,25 @@ namespace Hubris::Graphics::Vulkan {
             appInfo.applicationVersion = VK_MAKE_API_VERSION(pVersion.Variant, pVersion.Major, pVersion.Minor, pVersion.Patch);
             appInfo.pEngineName = "Hubris Engine";
             appInfo.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-            appInfo.apiVersion = VK_API_VERSION_1_4;
+
+            uint32_t supportedInstanceVersion = VK_API_VERSION_1_0;
+            if (vkEnumerateInstanceVersion) {
+                vkEnumerateInstanceVersion(&supportedInstanceVersion);
+            }
+
+            if (supportedInstanceVersion < VK_API_VERSION_1_3) {
+                Logger::Fatal("Vulkan 1.3+ is required (dynamic rendering path). Runtime supports {}.{}.{}",
+                    VK_API_VERSION_MAJOR(supportedInstanceVersion),
+                    VK_API_VERSION_MINOR(supportedInstanceVersion),
+                    VK_API_VERSION_PATCH(supportedInstanceVersion));
+                return;
+            }
+
+            appInfo.apiVersion = supportedInstanceVersion >= VK_API_VERSION_1_4 ? VK_API_VERSION_1_4 : VK_API_VERSION_1_3;
+            Logger::Log("(vk) Requesting Vulkan API {}.{}.{}",
+                VK_API_VERSION_MAJOR(appInfo.apiVersion),
+                VK_API_VERSION_MINOR(appInfo.apiVersion),
+                VK_API_VERSION_PATCH(appInfo.apiVersion));
 
             VkInstanceCreateInfo createInfo{};
             createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -279,19 +297,38 @@ namespace Hubris::Graphics::Vulkan {
                 queueCreateInfo.pQueuePriorities = &queuePriority;
                 queueCreateInfos.push_back(queueCreateInfo);
             }
+            
+            VkPhysicalDeviceVulkan13Features supportedVk13Features{};
+            supportedVk13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+            VkPhysicalDeviceFeatures2 supportedFeatures2{};
+            supportedFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            supportedFeatures2.pNext = &supportedVk13Features;
 
-            VkPhysicalDeviceFeatures deviceFeatures{};
-            deviceFeatures.geometryShader = true;
+            vkGetPhysicalDeviceFeatures2(bestDev.vkPhysicalDevice, &supportedFeatures2);
+            if (!supportedVk13Features.dynamicRendering || !supportedFeatures2.features.geometryShader) {
+                Logger::Log("(vk) Required device features missing: dynamicRendering={}, geometryShader={}",
+                    supportedVk13Features.dynamicRendering ? "true" : "false",
+                    supportedFeatures2.features.geometryShader ? "true" : "false");
+                return ErrorCode::FAILED;
+            }
+
+            VkPhysicalDeviceVulkan13Features enabledVk13Features{};
+            enabledVk13Features.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+            enabledVk13Features.dynamicRendering = VK_TRUE;
+            VkPhysicalDeviceFeatures2 enabledFeatures2{};
+            enabledFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+            enabledFeatures2.pNext = &enabledVk13Features;
+            enabledFeatures2.features.geometryShader = VK_TRUE;
 
             VkDeviceCreateInfo deviceCreateInfo{};
             deviceCreateInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-
+            deviceCreateInfo.pNext = &enabledFeatures2;
             //TODO: Add other queues (Compute, Transfer).
             deviceCreateInfo.pQueueCreateInfos = queueCreateInfos.data();
             // The number of queue create infos is guaranteed to fit within uint32_t by Vulkan API constraints.
             deviceCreateInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 
-            deviceCreateInfo.pEnabledFeatures = &deviceFeatures;
+            deviceCreateInfo.pEnabledFeatures = nullptr;
 
             deviceCreateInfo.ppEnabledExtensionNames = requiredExt.data();
             deviceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(requiredExt.size());
@@ -303,22 +340,20 @@ namespace Hubris::Graphics::Vulkan {
             deviceCreateInfo.ppEnabledLayerNames = validationLayers.data();
 #endif
 
-            
-
             if(vkCreateDevice(bestDev.vkPhysicalDevice, &deviceCreateInfo, nullptr, &device) != VK_SUCCESS){
                 Logger::Log("(vk) Unable to create device.");
                 return ErrorCode::FAILED;
             }
             
 
-            vkGetDeviceQueue(device, bestDev.Graphics.Index.value(), 0, &vkRenderer::GraphicsQueue.queue);
-            vkRenderer::GraphicsQueue.index = bestDev.Graphics.Index.value();
+            vkGetDeviceQueue(device, bestDev.Graphics.Index.value(), 0, &VulkanRenderer::GraphicsQueue.queue);
+            VulkanRenderer::GraphicsQueue.index = bestDev.Graphics.Index.value();
             if(bestDev.Graphics.Index == bestDev.Present.Index){
-                vkRenderer::PresentQueue = vkRenderer::GraphicsQueue;
-                vkRenderer::PresentQueue.index = bestDev.Graphics.Index.value();
+                VulkanRenderer::PresentQueue = VulkanRenderer::GraphicsQueue;
+                VulkanRenderer::PresentQueue.index = bestDev.Graphics.Index.value();
             }else{
-                vkGetDeviceQueue(device, bestDev.Present.Index.value(), 0, &vkRenderer::PresentQueue.queue);
-                vkRenderer::PresentQueue.index = bestDev.Present.Index.value();
+                vkGetDeviceQueue(device, bestDev.Present.Index.value(), 0, &VulkanRenderer::PresentQueue.queue);
+                VulkanRenderer::PresentQueue.index = bestDev.Present.Index.value();
             }
 
 
@@ -522,6 +557,10 @@ namespace Hubris::Graphics::Vulkan {
 
         static void SetAllocator(VkAllocationCallbacks cb) /*noexcept*/ {
             throw std::exception("Not Implemented");
+        }
+
+        static RuntimeDeviceData GetRuntimeDeviceInfo() noexcept {
+            return SelectedDevice;
         }
 
         static void setupDebugMessenger() {

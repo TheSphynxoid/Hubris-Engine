@@ -11,29 +11,45 @@ Hubris::Handle<Hubris::Graphics::Shader> FragShader;
 
 void OnStart(const Hubris::Core::OnStart& e){
     Hubris::Logger::Log("Client On Start Called");
-    auto vertShaderCode = Hubris::IO::readFile("shaders/vert.spv");
-    if(!vertShaderCode.size()){
+    auto& vfs = Hubris::IO::VFS::VFS();
+
+    auto vertShaderCode = vfs.Load("shaders://vert.spv");
+    if(!vertShaderCode && !vertShaderCode.value().Size()){
         Hubris::Logger::Log("Unable to read vert.spv");
         Hubris::Engine::Shutdown();
         return;
     }
-    auto fragShaderCode = Hubris::IO::readFile("shaders/frag.spv");
-    if(!vertShaderCode.size()){
+    auto fragShaderCode = vfs.Load("shaders://frag.spv");
+    if(!fragShaderCode && !fragShaderCode.value().Size()){
         Hubris::Logger::Log("Unable to read frag.spv");
         Hubris::Engine::Shutdown();
         return;
     }
 
-    VertShader = Hubris::Graphics::Shader::Create(vertShaderCode, Hubris::Graphics::ShaderStage::Vertex);
+    VertShader = Hubris::Graphics::Shader::Create(vertShaderCode.value().data, Hubris::Graphics::ShaderStage::Vertex);
     if(!VertShader->Valid()){
         Hubris::Logger::Fatal("Failed to create Shader");
         return;
     }
-    FragShader = Hubris::Graphics::Shader::Create(fragShaderCode, Hubris::Graphics::ShaderStage::Fragment);
+
+    vfs.Unload(*vertShaderCode);
+
+    FragShader = Hubris::Graphics::Shader::Create(fragShaderCode.value().data, Hubris::Graphics::ShaderStage::Fragment);
     if(!FragShader->Valid()){
         Hubris::Logger::Fatal("Failed to create Shader");
         return;
     }
+
+    vfs.Unload(*fragShaderCode);
+
+    Hubris::Graphics::PipelineDescriptor desc;
+    desc.shaders.reserve(2);
+    desc.shaders.emplace_back(std::move(VertShader));
+    desc.shaders.emplace_back(std::move(FragShader));
+    
+    Hubris::Handle<Hubris::Graphics::Pipeline> p = Hubris::Graphics::Pipeline::Create(desc);
+    
+    _CrtDbgBreak();
 }
 
 int run(int argc, char** argv){

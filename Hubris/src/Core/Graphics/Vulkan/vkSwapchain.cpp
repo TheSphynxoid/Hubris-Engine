@@ -6,17 +6,17 @@
 using namespace Hubris::Graphics;
 using namespace Hubris::Graphics::Vulkan;
 
-Hubris::Graphics::Vulkan::vkSwapchain::vkSwapchain(VkSwapchainKHR swapchain, VkFormat format, VkExtent2D extent) noexcept : handle(swapchain),
+Hubris::Graphics::Vulkan::VulkanSwapchain::VulkanSwapchain(VkSwapchainKHR swapchain, VkFormat format, VkExtent2D extent) noexcept : handle(swapchain),
     swapChainExtent(extent), swapChainImageFormat(format)
 {
     if (swapchain == VK_NULL_HANDLE) {
         Logger::Log("VulkanSwapchain: default-constructed into an incomplete state.");
         return;
     }
-    vkGetSwapchainImagesKHR(vkBackend::GetDevice(), swapchain, &imageCount, nullptr);
+    vkGetSwapchainImagesKHR(VulkanBackend::GetDevice(), swapchain, &imageCount, nullptr);
     images.resize(imageCount);
     swapChainImageViews.resize(imageCount);
-    vkGetSwapchainImagesKHR(vkBackend::GetDevice(), swapchain, &imageCount, images.data());
+    vkGetSwapchainImagesKHR(VulkanBackend::GetDevice(), swapchain, &imageCount, images.data());
 
 
 
@@ -37,7 +37,7 @@ Hubris::Graphics::Vulkan::vkSwapchain::vkSwapchain(VkSwapchainKHR swapchain, VkF
         createInfo.subresourceRange.levelCount = 1;
         createInfo.subresourceRange.baseArrayLayer = 0;
         createInfo.subresourceRange.layerCount = 1;
-        if (vkCreateImageView(vkBackend::GetDevice(), &createInfo, vkBackend::GetAllocator(), &swapChainImageViews[i]) != VK_SUCCESS) {
+        if (vkCreateImageView(VulkanBackend::GetDevice(), &createInfo, VulkanBackend::GetAllocator(), &swapChainImageViews[i]) != VK_SUCCESS) {
             Logger::Fatal("Failed to create image view.");
             return;
         }
@@ -45,55 +45,55 @@ Hubris::Graphics::Vulkan::vkSwapchain::vkSwapchain(VkSwapchainKHR swapchain, VkF
 
 }
 
-Hubris::Graphics::Vulkan::vkSwapchain::~vkSwapchain()
+Hubris::Graphics::Vulkan::VulkanSwapchain::~VulkanSwapchain()
 {
     Destroy();
 }
 
 
-SwapchainResult Hubris::Graphics::Vulkan::vkSwapchain::AcquireNextImage(uint32_t& imageIndex)
+SwapchainResult Hubris::Graphics::Vulkan::VulkanSwapchain::AcquireNextImage(uint32_t& imageIndex)
 {
     return SwapchainResult();
 }
 
-void* Hubris::Graphics::Vulkan::vkSwapchain::GetImage(uint32_t imageIndex) const
+void* Hubris::Graphics::Vulkan::VulkanSwapchain::GetImage(uint32_t imageIndex) const
 {
     return nullptr;
 }
 
-SwapchainResult Hubris::Graphics::Vulkan::vkSwapchain::Present(uint32_t imageIndex)
+SwapchainResult Hubris::Graphics::Vulkan::VulkanSwapchain::Present(uint32_t imageIndex)
 {
     return SwapchainResult();
 }
 
-void Hubris::Graphics::Vulkan::vkSwapchain::Resize(uint32_t width, uint32_t height)
+void Hubris::Graphics::Vulkan::VulkanSwapchain::Resize(uint32_t width, uint32_t height)
 {
 }
 
-size_t Hubris::Graphics::Vulkan::vkSwapchain::GetImageCount() const
+size_t Hubris::Graphics::Vulkan::VulkanSwapchain::GetImageCount() const
 {
     return imageCount;
 }
 
-Format Hubris::Graphics::Vulkan::vkSwapchain::GetImageFormat() const noexcept
+Format Hubris::Graphics::Vulkan::VulkanSwapchain::GetImageFormat() const noexcept
 {
     return VkFormatToFormat(swapChainImageFormat);
 }
 
-bool Hubris::Graphics::Vulkan::vkSwapchain::IsValid() const noexcept
+bool Hubris::Graphics::Vulkan::VulkanSwapchain::IsValid() const noexcept
 {
     return handle != VK_NULL_HANDLE;
 }
 
-void Hubris::Graphics::Vulkan::vkSwapchain::Destroy() noexcept
+void Hubris::Graphics::Vulkan::VulkanSwapchain::Destroy() noexcept
 {
-    vkDestroySwapchainKHR(vkBackend::GetDevice(), handle, vkBackend::GetAllocator());
+    vkDestroySwapchainKHR(VulkanBackend::GetDevice(), handle, VulkanBackend::GetAllocator());
     handle = VK_NULL_HANDLE;
     swapChainExtent.height = 0;
     swapChainExtent.width = 0;
     swapChainImageFormat = VK_FORMAT_UNDEFINED;
     for (auto imageview : swapChainImageViews) {
          
-        vkDestroyImageView(vkBackend::GetDevice(), imageview, vkBackend::GetAllocator());
+        vkDestroyImageView(VulkanBackend::GetDevice(), imageview, VulkanBackend::GetAllocator());
     }
 }

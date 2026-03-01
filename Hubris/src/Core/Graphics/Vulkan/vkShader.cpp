@@ -3,13 +3,15 @@
 
 using namespace Hubris::Graphics;
 
-Hubris::Graphics::Vulkan::vkShader::vkShader(const std::vector<char> &code, ShaderStage _stage) : Shader(_stage) {
+Hubris::Graphics::Vulkan::VulkanShader::VulkanShader(const std::span<const uint8_t>& code, ShaderStage _stage,
+	std::string _entryPoint) : Shader(_stage), entryPoint(_entryPoint) {
 	VkShaderModuleCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
 	createInfo.codeSize = code.size();
 	createInfo.pCode = reinterpret_cast<const uint32_t *>(code.data());
+	
 
-	if (vkCreateShaderModule(vkBackend::GetDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
+	if (vkCreateShaderModule(VulkanBackend::GetDevice(), &createInfo, nullptr, &shaderModule) != VK_SUCCESS)
 	{
 		Logger::Log("failed to create shader module!");
 		stage = ShaderStage::Unknown;

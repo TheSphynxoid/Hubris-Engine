@@ -6,6 +6,8 @@
 #include <Core/Graphics/Window.h>
 #include <Memory.h>
 #include <Core/EventBus.h>
+#include <IO/VFS/VirtualFileSystem.h>
+#include <IO/VFS/FileSystemLoader.h>
 
 /// @brief The Hubris Engine main namespace.
 namespace Hubris {
@@ -115,6 +117,14 @@ namespace Hubris {
 			// if (config.StartUpCallback) {
 			// 	config.StartUpCallback();
 			// }
+			
+			auto& vfs = IO::VFS::VFS();
+			auto shaderLoader = Handle<Hubris::IO::VFS::FileSystemLoader>(
+				std::filesystem::current_path() / "assets/shaders",
+				"shaders://",
+				100
+			);
+			vfs.Mount(std::move(shaderLoader));
 
 			Core::StaticEventBus<Core::OnStart>::Dispatch(Core::OnStart());
 		}
@@ -161,7 +171,7 @@ namespace Hubris {
 
 		static void CreateWindow() {}
 		
-		static Graphics::Window* GetWindow() {};
+		static Graphics::Window* GetWindow() noexcept { return window; };
 		static inline const std::string& GetProjectName() noexcept { return ProjectName; };
 		static inline const Version& GetProjectVersion() noexcept { return ProjectVersion; };
 		// static const char** GetVkRequiredExtensions() noexcept;

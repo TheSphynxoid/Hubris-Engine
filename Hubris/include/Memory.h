@@ -7,6 +7,7 @@
 #include <utility>
 #include <type_traits>
 #include <algorithm>
+#include <cassert>
 
 namespace Hubris{
     template<typename From, typename To>
@@ -160,9 +161,10 @@ namespace Hubris{
     struct ControlBlock{
         void* raw;
         std::atomic_uint32_t ref_count = { 1 };
-        std::atomic_uint32_t weak_count = { 1 };
+        std::atomic_uint32_t weak_count = { 1 };  // Implicit weak ref held by strong refs
         void* BaseLocation;
         size_t alloc_align;
+        bool co_allocated = true;  // true if allocated via CoAllocate, false if manually created
     };
 
     template<typename T>
@@ -172,13 +174,13 @@ namespace Hubris{
 
     
     template<typename T, typename F>
-    void Traverse(T&& container, F&& func) {
+    void Traverse(T&& container, F&& for_each_leaf) {
         if constexpr (std::ranges::range<T> && !std::is_same_v<std::decay_t<T>, std::string>) {
             for (auto&& elem : container) {
-                Traverse(std::forward<decltype(elem)>(elem), func);
+                Traverse(std::forward<decltype(elem)>(elem), for_each_leaf);
             }
         } else {
-            func(std::forward<T>(container));
+            for_each_leaf(std::forward<T>(container));
         }
     }
 
@@ -192,11 +194,14 @@ namespace Hubris{
         constexpr size_t Toffset =  alignof(ControlBlock) > alignof(T) ? padded_size<ControlBlock>() : 0;
         constexpr size_t CTR_offset = alignof(ControlBlock) > alignof(T) ? 0 : padded_size<ControlBlock>();
         char* ptr = (char*)(alignof(ControlBlock) > alignof(T)
-            ? operator new(padded_size<ControlBlock>() + sizeof(T), std::align_val_t{ alloc_align })
-            : operator new(padded_size<T>() + sizeof(ControlBlock), std::align_val_t{ alloc_align }));
+            ? operator new(padded_size<ControlBlock>() + sizeof(T), std::align_val_t{ alloc_align }, std::nothrow)
+            : operator new(padded_size<T>() + sizeof(ControlBlock), std::align_val_t{ alloc_align }, std::nothrow));
         
-        //This is aligned because either it is at the start (alignof(Crt) > alignof(T)) or T is padded at the end to align make this aligned
+        if (!ptr) return nullptr;
+        
+        //This is aligned because either it is at the start (alignof(Ctr) > alignof(T)) or T is padded at the end to align make this aligned
         ControlBlock* ctr = new(ptr + CTR_offset)ControlBlock();
+        if(!ctr)return nullptr;
         ctr->alloc_align = alloc_align;
         ctr->BaseLocation = ptr;
         //The logic is flipped but applies here.
@@ -222,15 +227,15 @@ namespace Hubris{
     /// @return a fully intialized controlblock pointing at the newly constructed T
     template<typename T, typename ...Args>
     constexpr ControlBlock* CoAllocate(Args&& ...args){
-        constexpr size_t Toffset =  alignof(ControlBlock) > alignof(T) ? padded_size<ControlBlock>() : 0;
         ControlBlock* ctr = CoAllocate_Unsafe<T>();
-        Construct_T_Inplace<Args...>(ctr->raw, std::forward<Args>(args)...);
+        if(!ctr)return nullptr;
+        Construct_T_Inplace<T, Args...>(ctr->raw, std::forward<Args>(args)...);
         return ctr;
     }
 
     // template<typename T>
-    // constexpr void CoDelete(ControlBlock* crt){
-    //     assert(crt->raw && "ControlBlock is observing no object");
+    // constexpr void CoDelete(ControlBlock* ctr){
+    //     assert(ctr->raw && "ControlBlock is observing no object");
     //     if constexpr(!std::is_array_v<T>){
 
     //     }
@@ -239,72 +244,114 @@ namespace Hubris{
     template<typename T> requires IsType<T>
     struct Shared {
         static_assert(!std::is_reference_v<T>, "No reference is allowed.");
+        static_assert(!std::is_array_v<T>, "Use Shared<T[N]> for bounded arrays; unbounded arrays are not supported.");
         using Unqualified = std::remove_cv_t<T>;
+        
+        // Allow all Shared<U> instantiations to access private members
+        template<typename U> requires IsType<U>
+        friend struct Shared;
+        template<typename U> requires IsType<U>
+        friend struct Weak;
+        
         #ifdef _DEBUG
         bool HasBeenConverted = false;
-        const type_info& Converted_Type_Info = typeid(T);
+        const type_info* Converted_Type_Info = &typeid(T);
         #endif
     private:
         /// @brief The control block must never be assigned by the user, 
         /// it must be verified that the underlying types before assigning as it is abstracted through a void* to allow for conversion (only polymorphic conversion is allowed).
         ControlBlock* ctr_blk = nullptr;
 
-        /// @brief Create a Shared pointer wrapped around an arbitrary pointer. This is dangerous, thus it's private.
-        /// @param t Pointer to T.
+        /// @brief Create a Shared pointer wrapped around a pointer allocated with scalar ::operator new.
+        /// @warning The pointer MUST have been allocated with `new T(...)` (not new[], not placement new).
+        /// @param t Pointer to T. Ownership is transferred.
         constexpr Shared(T* t) noexcept {
             ctr_blk = new ControlBlock;
             ctr_blk->raw = (void*)t;
-        }
-
-        /// @brief Create a shared pointer with a controlblock, this is only useful for Weak<T>
-        /// @param ctr the shared control block.
-        constexpr Shared(ControlBlock* ctr) noexcept{
-            assert(ctr && "Attempted to create a Shared with an empty ControlBlock");
-            ctr_blk = ctr;
-            if(!ctr_blk)return; //Pre-caution, but a stupid case.
-            ctr_blk->ref_count.fetch_add(1, std::memory_order_release);
+            ctr_blk->co_allocated = false;  // Manually created control block
         }
 
     public:
         constexpr Shared() noexcept = default;
 
+        // Same-type copy constructor
+        constexpr Shared(const Shared& other) noexcept : ctr_blk(other.ctr_blk) {
+            if (ctr_blk) {
+                ctr_blk->ref_count.fetch_add(1, std::memory_order_relaxed);
+            }
+        }
+
+        // Same-type move constructor
+        constexpr Shared(Shared&& other) noexcept : ctr_blk(std::exchange(other.ctr_blk, nullptr)) {}
+
+        // Same-type copy assignment
+        Shared& operator=(const Shared& other) noexcept {
+            if (this->ctr_blk == other.ctr_blk) return *this;
+            Release();
+            this->ctr_blk = other.ctr_blk;
+            if (ctr_blk) {
+                ctr_blk->ref_count.fetch_add(1, std::memory_order_relaxed);
+            }
+            return *this;
+        }
+
+        // Same-type move assignment
+        Shared& operator=(Shared&& other) noexcept {
+            if (this->ctr_blk == other.ctr_blk) return *this;
+            Release();
+            ctr_blk = std::exchange(other.ctr_blk, nullptr);
+            return *this;
+        }
+
         template<typename ...Args>
+            requires std::constructible_from<T, Args...> && 
+                     (sizeof...(Args) != 1 || 
+                      (!std::is_same_v<std::remove_cvref_t<Args>, Shared> && ...) &&
+                      (!std::is_same_v<std::remove_cvref_t<Args>, Weak<T>> && ...))
         constexpr Shared(Args&& ...args){
             //For now, CoAllocates blocks unbounded arrays. So calling dtor is possible by indexing the array.
             ctr_blk = CoAllocate<std::remove_cv_t<T>>(std::forward<Args>(args)...);
         }
 
-        constexpr explicit Shared(Weak<T>&& promote) noexcept{
-            if(promote.Expired())return;
+        constexpr explicit Shared(Weak<T>&& promote) noexcept {
+            if (!promote.ctr_blk) return;
+            uint32_t count = promote.ctr_blk->ref_count.load(std::memory_order_relaxed);
+            do {
+                if (count == 0) return;  // expired — leave this Shared empty
+            } while (!promote.ctr_blk->ref_count.compare_exchange_weak(
+                count, count + 1, std::memory_order_acq_rel, std::memory_order_relaxed));
+            
+            // Successfully atomically incremented ref_count — safe to take ownership
             this->ctr_blk = promote.ctr_blk;
-            ctr_blk->ref_count.fetch_add(1, std::memory_order_release);
             promote.Reset();
         }
 
         template<typename U>
         constexpr explicit Shared(const Shared<U>& other) noexcept requires PolymorphicConvertible<U, T> {
             this->ctr_blk = other.ctr_blk;
-            this->ctr_blk->ref_count.fetch_add(1, std::memory_order_release);
+            if (this->ctr_blk) {
+                this->ctr_blk->ref_count.fetch_add(1, std::memory_order_relaxed);
+            }
             #ifdef _DEBUG
             if constexpr (!std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>){
                 HasBeenConverted = true;
-                Converted_Type_Info = typeid(U);
+                Converted_Type_Info = &typeid(U);
             }
             #endif
         }
                 
         template<typename U>
         Shared& operator=(const Shared<U>& cpy) noexcept requires PolymorphicConvertible<U, T>{
-            if(this == &cpy)return *this;
+            if(this->ctr_blk == cpy.ctr_blk) return *this;
             Release();
             this->ctr_blk = cpy.ctr_blk;
             //Copied an "empty" Shared into this one. User at fault but still we do what they wanted.
-            if(!ctr_blk)return;
-            ctr_blk->ref_count.fetch_add(1, std::memory_order_acquire);
+            if(!ctr_blk) return *this;
+            ctr_blk->ref_count.fetch_add(1, std::memory_order_relaxed);
             #ifdef _DEBUG
             if constexpr (!std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>){
                 HasBeenConverted = true;
-                Converted_Type_Info = typeid(U);
+                Converted_Type_Info = &typeid(U);
             }
             #endif
             return *this;
@@ -312,24 +359,24 @@ namespace Hubris{
 
         template<typename U>
         constexpr explicit Shared(Shared<U>&& other) noexcept requires PolymorphicConvertible<U, T> {
-            std::swap(this->ctr_blk, other->crt_blk);
+            this->ctr_blk = std::exchange(other.ctr_blk, nullptr);
             #ifdef _DEBUG
             if constexpr (!std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>){
                 HasBeenConverted = true;
-                Converted_Type_Info = typeid(U);
+                Converted_Type_Info = &typeid(U);
             }
             #endif
         }
         
         template<typename U>
         Shared& operator=(Shared<U>&& mv) noexcept requires PolymorphicConvertible<U, T> {
-            if(this == &mv)return *this;
+            if(this->ctr_blk == mv.ctr_blk) return *this;
             Release();
-            std::swap(this->ctr_blk, mv.ctr_blk);
+            this->ctr_blk = std::exchange(mv.ctr_blk, nullptr);
             #ifdef _DEBUG
             if constexpr (!std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>){
                 HasBeenConverted = true;
-                Converted_Type_Info = typeid(U);
+                Converted_Type_Info = &typeid(U);
             }
             #endif
             return *this;
@@ -343,16 +390,33 @@ namespace Hubris{
         void Release() {
             if (ctr_blk) {
                 if (ctr_blk->ref_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-                    Traverse(*(Unqualified*)ctr_blk->raw, [](std::remove_all_extents_t<Unqualified>& t){
-                        std::destroy_at(std::addressof(t));
+                    // Last strong ref — destroy the managed object
+                    void* raw_ptr = ctr_blk->raw;
+                    Traverse(*(Unqualified*)raw_ptr, [](auto& t){
+                        if constexpr (!std::is_array_v<decltype(t)>) {
+                            std::destroy_at(std::addressof(t));
+                        }
                     });
                     ctr_blk->raw = nullptr;
 
-                    if (ctr_blk->weak_count.load(std::memory_order_acq_rel) == 0) {
-                        auto loc = ctr_blk->BaseLocation;
-                        auto align_val = std::align_val_t{ctr_blk->alloc_align};
-                        ctr_blk->~ControlBlock();
-                        operator delete(loc, align_val);
+                    // Free the object's storage when not co-allocated
+                    if (!ctr_blk->co_allocated) {
+                        ::operator delete(raw_ptr);
+                    }
+
+                    // Release the implicit weak reference held by strong refs
+                    // If weak_count reaches 0, we delete the control block
+                    if (ctr_blk->weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                        if (ctr_blk->co_allocated) {
+                            // CoAllocate: single aligned allocation
+                            auto loc = ctr_blk->BaseLocation;
+                            auto align_val = std::align_val_t{ctr_blk->alloc_align};
+                            ctr_blk->~ControlBlock();
+                            operator delete(loc, align_val);
+                        } else {
+                            // Manual: control block allocated separately
+                            delete ctr_blk;
+                        }
                     }
                 }
                 ctr_blk = nullptr;
@@ -387,7 +451,7 @@ namespace Hubris{
          */
         bool Constructed()const noexcept { return ctr_blk; }
 
-        operator bool(){
+        explicit operator bool() const noexcept {
             return ctr_blk && ctr_blk->raw; //rely on short-circuit to avoid UB.
         }
 
@@ -397,7 +461,7 @@ namespace Hubris{
             #ifdef _DEBUG
             if constexpr (!std::is_same_v<std::remove_cv_t<T>, std::remove_cv_t<U>>){
                 HasBeenConverted = true;
-                Converted_Type_Info = typeid(U);
+                Converted_Type_Info = &typeid(U);
             }
             #endif
         }
@@ -409,24 +473,86 @@ namespace Hubris{
     template<typename T> requires IsType<T>
     struct Weak{
     private:
-        ControlBlock* ctr_blk;
+        ControlBlock* ctr_blk = nullptr;
+        
+        // Allow all Weak<U> instantiations to access private members
+        template<typename U> requires IsType<U>
+        friend struct Weak;
+        
+        // Allow Shared to access private members
+        template<typename U> requires IsType<U>
+        friend struct Shared;
+        
     public:
-        constexpr Weak(const Shared<T>& s) noexcept{
-            // static_assert(s.ctr_blk != nullptr, "Attempted to create a weak reference from an empty Shared");
-            ctr_blk = s.ctr_blk;
-            //This is memory order release instead of relax because it is creating a Weak reference and it must be valid upon return.
-            //in the case of other operation, whoever deletes the control block doesn't matter as long it is deleted,
-            //the deletion is ensure by the atomicity of the counter, but order doesn't matter. Correct me if i'm wrong.
-            ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+        constexpr Weak(const Shared<T>& s) noexcept : ctr_blk(s.ctr_blk) {
+            if (ctr_blk) {
+                ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+            }
+        }
+        
+        // Same-type copy constructor
+        constexpr Weak(const Weak& other) noexcept : ctr_blk(other.ctr_blk) {
+            if (ctr_blk) ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+        }
+        
+        // Same-type move constructor
+        constexpr Weak(Weak&& other) noexcept : ctr_blk(std::exchange(other.ctr_blk, nullptr)) {}
+        
+        // Same-type copy assignment
+        Weak& operator=(const Weak& other) noexcept {
+            if (this->ctr_blk == other.ctr_blk) return *this;
+            Reset();
+            ctr_blk = other.ctr_blk;
+            if (ctr_blk) ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+            return *this;
+        }
+        
+        // Same-type move assignment
+        Weak& operator=(Weak&& other) noexcept {
+            if (this->ctr_blk == other.ctr_blk) return *this;
+            Reset();
+            ctr_blk = std::exchange(other.ctr_blk, nullptr);
+            return *this;
+        }
+        
+        // Converting constructor from Weak<U>
+        template<typename U>
+        constexpr Weak(const Weak<U>& other) noexcept requires PolymorphicConvertible<U, T> {
+            ctr_blk = other.ctr_blk;
+            if(ctr_blk) {
+                ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+            }
+        }
+        
+        // Converting assignment operator
+        template<typename U>
+        Weak& operator=(const Weak<U>& other) noexcept requires PolymorphicConvertible<U, T> {
+            if(this->ctr_blk == other.ctr_blk) return *this;
+            Reset();
+            ctr_blk = other.ctr_blk;
+            if(ctr_blk) {
+                ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+            }
+            return *this;
         }
 
         ~Weak(){
             Reset();
         }
 
-        Shared<T> Lock()const noexcept {
-            if(ctr_blk->ref_count.load(std::memory_order_acquire) == 0)return Shared<T>();
-            return Shared<T>(*this);
+        Shared<T> Lock() const noexcept {
+            if (!ctr_blk) return Shared<T>();
+            uint32_t count = ctr_blk->ref_count.load(std::memory_order_relaxed);
+            do {
+                if (count == 0) return Shared<T>();
+            } while (!ctr_blk->ref_count.compare_exchange_weak(
+                count, count + 1, std::memory_order_acq_rel, std::memory_order_relaxed));
+            
+            // ref_count is now atomically incremented — safe to construct
+            Shared<T> result;
+            result.ctr_blk = ctr_blk;
+            // Don't increment again — we already did it in the CAS
+            return result;
         }
 
         bool Expired()const noexcept{
@@ -435,13 +561,20 @@ namespace Hubris{
 
         void Reset() noexcept{
             if (ctr_blk) {
-                //This condition, decrements the weak_count, so even if the ctr_blk isn't expired, the counter still got down.
-                if (ctr_blk->weak_count.fetch_sub(1, std::memory_order_relaxed) == 1 &&
-                    ctr_blk->ref_count.load(std::memory_order_acquire) == 0) {
-                    auto loc = ctr_blk->BaseLocation;
-                    auto align_val = std::align_val_t{ctr_blk->alloc_align};
-                    ctr_blk->~ControlBlock();
-                    operator delete(loc, align_val);
+                // With implicit weak reference protocol:
+                // Only the thread that decrements weak_count to 0 deletes the control block
+                // This eliminates the race between Release() and Reset()
+                if (ctr_blk->weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                    if (ctr_blk->co_allocated) {
+                        // CoAllocate: single aligned allocation
+                        auto loc = ctr_blk->BaseLocation;
+                        auto align_val = std::align_val_t{ctr_blk->alloc_align};
+                        ctr_blk->~ControlBlock();
+                        operator delete(loc, align_val);
+                    } else {
+                        // Manual: control block allocated separately
+                        delete ctr_blk;
+                    }
                 }
                 ctr_blk = nullptr;
             }
@@ -451,8 +584,8 @@ namespace Hubris{
             return ctr_blk ? ctr_blk->ref_count.load(std::memory_order_acquire) : 0;
         }
 
-        operator bool()const noexcept{
-            return !Expired() && ctr_blk->raw;
+        explicit operator bool() const noexcept {
+            return ctr_blk && ctr_blk->ref_count.load(std::memory_order_acquire) > 0 && ctr_blk->raw;
         }
 
         friend Shared<T>;
@@ -462,13 +595,42 @@ namespace Hubris{
     struct Handle{
     private:
         T* raw = nullptr;
+        
+        // Allow all Handle<U> instantiations to access private members
+        template<typename U> requires IsType<U>
+        friend struct Handle;
+        
     public:
+        // NOTE: Constructors that allocate are noexcept and will terminate on OOM.
         constexpr Handle() noexcept = default;
         constexpr Handle(std::nullptr_t) {};
+        // Object Construction
+        // T construction
         constexpr Handle(T* t) noexcept {
             raw = t;
         }
 
+        template<typename... Args>
+        Handle(std::initializer_list<int> args, Args&&... extra) noexcept requires std::constructible_from<T, Args...> {
+            raw = new T(args, std::forward<Args>(extra)...);
+        }
+        
+        template<typename... Args>
+        requires std::constructible_from<T, Args...> && 
+                 (sizeof...(Args) > 0) && 
+                 (!std::is_pointer_v<std::tuple_element_t<0, std::tuple<Args...>>>)
+        explicit Handle(Args&&... args) noexcept
+            : raw(new T(std::forward<Args>(args)...))
+        {
+        }
+        
+        template<typename... Args>
+        explicit Handle(std::in_place_t, Args&&... args) noexcept
+            : raw(new T(std::forward<Args>(args)...))
+        {
+        }
+
+        //Polymorphic construction through U (Converting U to T safe-guarded by Concepts)
         template<typename U>
         constexpr explicit Handle(U* other) noexcept requires SafelyUpcastable<U, T> && !SameUnqualifiedType<T,U>{
             //If U is polymorphic => U*->T* => T::~T() must be virtual <=> T base of U
@@ -478,10 +640,13 @@ namespace Hubris{
             raw = static_cast<T*>(other);
         }
         
+        //End of Object Construction.
+
         template<typename U>
-        constexpr Handle(Handle<U>&& other) noexcept requires Castable<U*, T*>{
+        constexpr Handle(Handle<U>&& other) noexcept requires PolymorphicConvertible<U, T>{
             reset();
-            std::swap(this->raw, other.raw);
+            this->raw = static_cast<T*>(other.raw);
+            other.raw = nullptr;
         }
 
         constexpr Handle(Handle&& mv) noexcept {
@@ -499,9 +664,10 @@ namespace Hubris{
         }
         template<typename U>
         Handle& operator=(Handle<U>&& mv) noexcept requires PolymorphicConvertible<U, T>{
-            if(this == &mv)return *this;
+            if(this->raw == static_cast<T*>(mv.raw)) return *this;
             reset();
-            std::swap(this->raw, static_cast<T*>(mv.raw));
+            this->raw = static_cast<T*>(mv.raw);
+            mv.raw = nullptr;
             return *this;
         }
 
@@ -526,26 +692,22 @@ namespace Hubris{
             return std::exchange(raw, nullptr);
         }
         
-        template<typename U>
-        constexpr void swap(Handle<U>& rhs) noexcept requires PolymorphicConvertible<U, T> {
-            std::swap(this->raw, static_cast<T*>(rhs.raw));
+        constexpr void swap(Handle& rhs) noexcept {
+            std::swap(this->raw, rhs.raw);
         }
 
         Shared<T> ToShared(){
             if(raw == nullptr) return Shared<T>();
             Shared<T> shared;
+            
             //I think at compile time this will be optimized.
-            if constexpr (std::is_trivially_copyable_v<T>){
-                shared.ctr_blk = CoAllocate_Unsafe<T>();
-                //Assumed safe because CoAllocate Allocates size T and we're moving in it.
-                memmove(shared.ctr_blk->raw, raw, sizeof(T));
-            }else if constexpr (std::is_move_constructible_v<T>){
+            if constexpr (std::is_move_constructible_v<T>){
                 shared = Shared<T>(std::move(*raw));
             }else if constexpr (std::is_copy_constructible_v<T>){
                 shared = Shared<T>((const T&)*raw);
             }
             reset();
-            //without RVO, this will be a slightly costly. Ctor(inc)->Copy(inc.)->Delete(dec.) will be called.
+            // Guaranteed copy elision.
             return shared;
         }
 
@@ -589,7 +751,7 @@ namespace Hubris{
             return rhs.raw != this->raw;
         }
         //This is fine and left for simple checks.
-        constexpr inline operator bool()const noexcept{
+        explicit constexpr inline operator bool()const noexcept{
             return this->raw;
         }
 
@@ -598,6 +760,250 @@ namespace Hubris{
         //Explicitly disallow cast operators
         operator T*() = delete;
         operator void*() = delete;
+    };
+
+    // Specialization for bounded arrays: Handle<T[N]>
+    template<typename T, size_t N> requires IsType<T>
+    struct Handle<T[N]> {
+        using element_type = T;
+    private:
+        T(*raw)[N] = nullptr;
+        template<typename U> requires IsType<U>
+        friend struct Handle;
+    public:
+        constexpr Handle() noexcept = default;
+        constexpr Handle(std::nullptr_t) noexcept {}
+        explicit Handle(T(*ptr)[N] = nullptr) noexcept : raw(ptr) {}
+
+        ~Handle() noexcept { reset(); }
+
+        Handle(Handle&& other) noexcept : raw(std::exchange(other.raw, nullptr)) {}
+        Handle& operator=(Handle&& other) noexcept {
+            reset(other.release());
+            return *this;
+        }
+
+        Handle(const Handle&) = delete;
+        Handle& operator=(const Handle&) = delete;
+
+        T(*get())[N] { return raw; }
+        const T(*get() const)[N] { return raw; }
+
+        T& operator[](size_t idx) {
+            assert(raw && "Handle<T[N]> dereference is null");
+            assert(idx < N && "Handle<T[N]> index out of bounds");
+            return (*raw)[idx];
+        }
+        const T& operator[](size_t idx) const {
+            assert(raw && "Handle<T[N]> dereference is null");
+            assert(idx < N && "Handle<T[N]> index out of bounds");
+            return (*raw)[idx];
+        }
+
+        T(*release())[N] { return std::exchange(raw, nullptr); }
+
+        void reset(T(*ptr)[N] = nullptr) noexcept {
+            if (raw != ptr) {
+                delete[] raw;
+                raw = ptr;
+            }
+        }
+
+        constexpr void swap(Handle& rhs) noexcept { std::swap(this->raw, rhs.raw); }
+
+        explicit constexpr operator bool() const noexcept { return raw != nullptr; }
+        constexpr inline bool operator!() const noexcept { return !raw; }
+    };
+
+    // Specialization for bounded arrays: Shared<T[N]>
+    template<typename T, size_t N> requires IsType<T>
+    struct Shared<T[N]> {
+        using element_type = T;
+        using Unqualified = std::remove_cv_t<T>;
+
+        struct ControlBlock {
+            T(*ptr)[N] = nullptr;
+            std::atomic_uint32_t ref_count{1};
+            std::atomic_uint32_t weak_count{1};
+            void* BaseLocation = nullptr;
+            size_t alloc_align = 0;
+
+            explicit ControlBlock(T(*p)[N]) : ptr(p) {}
+            ~ControlBlock() = default;
+        };
+
+        template<typename U> requires IsType<U>
+        friend struct Shared;
+
+        explicit Shared(T(*ptr)[N] = nullptr) noexcept {
+            if (ptr) {
+                ctr_blk = new ControlBlock(ptr);
+            }
+        }
+
+        explicit Shared(void* ptr) noexcept {
+            if (ptr) {
+                ctr_blk = new ControlBlock((T(*)[N])ptr);
+            }
+        }
+
+        ~Shared() noexcept { Release(); }
+
+        void Release() {
+            if (ctr_blk) {
+                if (ctr_blk->ref_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                    Traverse(*ctr_blk->ptr, [](auto& t) {
+                        if constexpr (!std::is_array_v<decltype(t)>) {
+                            std::destroy_at(std::addressof(t));
+                        }
+                    });
+                    ::operator delete[](ctr_blk->ptr);
+
+                    if (ctr_blk->weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                        delete ctr_blk;
+                    }
+                }
+                ctr_blk = nullptr;
+            }
+        }
+
+        Shared(const Shared& other) noexcept : ctr_blk(other.ctr_blk) {
+            if (ctr_blk) {
+                ctr_blk->ref_count.fetch_add(1, std::memory_order_acq_rel);
+            }
+        }
+
+        Shared& operator=(const Shared& other) noexcept {
+            if (this != &other) {
+                Release();
+                ctr_blk = other.ctr_blk;
+                if (ctr_blk) {
+                    ctr_blk->ref_count.fetch_add(1, std::memory_order_acq_rel);
+                }
+            }
+            return *this;
+        }
+
+        Shared(Shared&& other) noexcept : ctr_blk(std::exchange(other.ctr_blk, nullptr)) {}
+
+        Shared& operator=(Shared&& other) noexcept {
+            Release();
+            ctr_blk = std::exchange(other.ctr_blk, nullptr);
+            return *this;
+        }
+
+        T(*get())[N] { return ctr_blk ? ctr_blk->ptr : nullptr; }
+        const T(*get() const)[N] { return ctr_blk ? ctr_blk->ptr : nullptr; }
+
+        T(&operator*())[N] { return *get(); }
+        const T(&operator*() const)[N] { return *get(); }
+
+        T& operator[](size_t idx) {
+            assert(get() && "Shared<T[N]> dereference is null");
+            assert(idx < N && "Shared<T[N]> index out of bounds");
+            return (*get())[idx];
+        }
+        const T& operator[](size_t idx) const {
+            assert(get() && "Shared<T[N]> dereference is null");
+            assert(idx < N && "Shared<T[N]> index out of bounds");
+            return (*get())[idx];
+        }
+
+        explicit operator bool() const noexcept { return get() != nullptr; }
+
+        uint32_t UseCount() const noexcept {
+            return ctr_blk ? ctr_blk->ref_count.load(std::memory_order_acquire) : 0;
+        }
+
+        constexpr void swap(Shared& rhs) noexcept { std::swap(this->ctr_blk, rhs.ctr_blk); }
+
+    private:
+        ControlBlock* ctr_blk = nullptr;
+    };
+
+    // Specialization for bounded arrays: Weak<T[N]>
+    template<typename T, size_t N> requires IsType<T>
+    struct Weak<T[N]> {
+        using element_type = T;
+        using ControlBlock = typename Shared<T[N]>::ControlBlock;
+
+    private:
+        ControlBlock* ctr_blk = nullptr;
+
+        template<typename U> requires IsType<U>
+        friend struct Weak;
+        template<typename U> requires IsType<U>
+        friend struct Shared;
+
+    public:
+        constexpr Weak() noexcept = default;
+
+        constexpr Weak(const Shared<T[N]>& s) noexcept : ctr_blk(s.ctr_blk) {
+            if (ctr_blk) {
+                ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+            }
+        }
+
+        // Same-type copy constructor
+        constexpr Weak(const Weak& other) noexcept : ctr_blk(other.ctr_blk) {
+            if (ctr_blk) ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+        }
+
+        // Same-type move constructor
+        constexpr Weak(Weak&& other) noexcept : ctr_blk(std::exchange(other.ctr_blk, nullptr)) {}
+
+        // Same-type copy assignment
+        Weak& operator=(const Weak& other) noexcept {
+            if (this->ctr_blk == other.ctr_blk) return *this;
+            Reset();
+            ctr_blk = other.ctr_blk;
+            if (ctr_blk) ctr_blk->weak_count.fetch_add(1, std::memory_order_release);
+            return *this;
+        }
+
+        // Same-type move assignment
+        Weak& operator=(Weak&& other) noexcept {
+            if (this->ctr_blk == other.ctr_blk) return *this;
+            Reset();
+            ctr_blk = std::exchange(other.ctr_blk, nullptr);
+            return *this;
+        }
+
+        ~Weak() { Reset(); }
+
+        Shared<T[N]> Lock() const noexcept {
+            if (!ctr_blk) return Shared<T[N]>();
+            uint32_t count = ctr_blk->ref_count.load(std::memory_order_relaxed);
+            do {
+                if (count == 0) return Shared<T[N]>();
+            } while (!ctr_blk->ref_count.compare_exchange_weak(
+                count, count + 1, std::memory_order_acq_rel, std::memory_order_relaxed));
+
+            Shared<T[N]> result;
+            result.ctr_blk = ctr_blk;
+            return result;
+        }
+
+        bool Expired() const noexcept {
+            return ctr_blk && ctr_blk->ref_count.load(std::memory_order_acquire) == 0;
+        }
+
+        void Reset() noexcept {
+            if (ctr_blk) {
+                if (ctr_blk->weak_count.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                    delete ctr_blk;
+                }
+                ctr_blk = nullptr;
+            }
+        }
+
+        uint32_t UseCount() const noexcept {
+            return ctr_blk ? ctr_blk->ref_count.load(std::memory_order_acquire) : 0;
+        }
+
+        explicit operator bool() const noexcept {
+            return ctr_blk && ctr_blk->ref_count.load(std::memory_order_acquire) > 0 && ctr_blk->ptr;
+        }
     };
 
     template <typename T>
@@ -685,13 +1091,18 @@ constexpr void swap(Hubris::Handle<T>& lhs, Hubris::Handle<T>& rhs) noexcept {
     lhs.swap(rhs);
 };
 
-template<typename T, typename U>
-constexpr void swap(Hubris::Handle<T>& lhs, Hubris::Handle<U>& rhs) noexcept requires Hubris::PolymorphicConvertible<U, T> {
+template<typename T, size_t N>
+constexpr void swap(Hubris::Handle<T[N]>& lhs, Hubris::Handle<T[N]>& rhs) noexcept {
     lhs.swap(rhs);
-}
+};
 
 template<typename T>
 constexpr void swap(Hubris::Shared<T>& lhs, Hubris::Shared<T>& rhs) noexcept {
+    lhs.swap(rhs);
+};
+
+template<typename T, size_t N>
+constexpr void swap(Hubris::Shared<T[N]>& lhs, Hubris::Shared<T[N]>& rhs) noexcept {
     lhs.swap(rhs);
 };
 

@@ -4,7 +4,7 @@
 
 namespace Hubris::Graphics
 {
-    enum class ImageLayout {
+    enum class ImageLayout : unsigned char {
         Undefined,
         ColorAttachment,
         DepthStencilAttachment,
@@ -13,26 +13,42 @@ namespace Hubris::Graphics
         CopyDest
     };
 
-    enum class ImageMemoryType {
+    enum class ImageMemoryType : unsigned char {
         GPU_LOCAL,
         CPU_VISIBLE,
         CPU_TO_GPU
     };
 
-	enum class Swizzle : unsigned char {
+	enum class Component : unsigned char {
         X = 0x0001, Y = 0x0002, Z = 0x0004, W = 0x0010,
         R=X, G=Y, B=Z, A=W
     };
-    ENABLE_ENUM_FLAGS(Swizzle);
-
-	typedef Swizzle Component;
-
-	template<size_t flagWidth>
-	struct FlagSet{
-		std::bitset<flagWidth> set;
-	};
+    ENABLE_ENUM_FLAGS(Component);
 
 	const Component AllComponents = Component::X | Component::Y | Component::Z | Component::W;
+	// TODO: Maybe add a Swizzle-style enum for shaders later.
+	// typedef Swizzle Component;
+
+	// template<size_t flagWidth>
+	// struct FlagSet{
+	// 	std::bitset<flagWidth> set;
+	// };
+
+
+	enum class BlendOp : unsigned char{
+		Add, Subtract, RevSubtract, Min, Max
+	};
+
+	enum class LogicOp : unsigned char{
+		Clear, AND, AND_Reverse, Copy, AND_Inverted, NoOP, XOR, OR, NOR, Equivalent, Invert, OR_Reverse, CopyInverted, OR_Inverted,
+		NAND, Set
+	};
+
+	enum class BlendFactor : unsigned char{
+		Zero, One, SrcColor, OneMinusSrcColor, DstColor, OneMinusDstColor, SrcAlpha, OneMinusSrcAlpha, DstAlpha, OneMinusDstAlpha,
+		ConstantColor, OneMinusConstantColor, ConstantAlpha, OneMinusConstantAlpha, SrcAlphaSaturate, Src1Color, OneMinusSrc1Color,
+		Src1Alpha, OneMinusSrc1Alpha
+	};
 
     enum class PipelineType : unsigned char {
 		Graphics,
@@ -61,26 +77,26 @@ namespace Hubris::Graphics
 		Count
 	};
 
-	enum class PolygonMode {
+	enum class PolygonMode : unsigned char {
 		Fill, 
 		Line, ///< Requires a GPU features, beware.
 		Point ///< Requires a GPU features, beware.
 	};
 
-	enum class CullMode {
+	enum class CullMode : unsigned char {
 		None,
 		Front,
 		Back,
 		FrontAndBack,
 	};
 
-	enum class FrontFaceOrder {
+	enum class FrontFaceOrder : unsigned char {
 		CounterClockwise,
 		Clockwise,
 	};
 
 
-	enum class SampleCount{
+	enum class SampleCount : unsigned char{
 		Count1 = 1,
 		Count2 = 2,
 		Count4 = 4,

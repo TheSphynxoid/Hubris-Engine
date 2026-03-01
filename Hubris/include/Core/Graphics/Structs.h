@@ -8,10 +8,10 @@ namespace Hubris::Graphics
      * @brief Screen-space Dimensions. The Depth Values are used by the pipelines 
      */
     struct Viewport {
-        float x;
-        float y;
         float Width;
         float Height;
+        float x;
+        float y;
         float MinDepth;
         float MaxDepth;
     };

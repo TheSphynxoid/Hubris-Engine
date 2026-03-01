@@ -1,8 +1,10 @@
 #pragma once
+#include <array>
 #include "Core/Utils.h"
 #include "Core/Graphics/Enums.h"
 #include "Core/Graphics/Structs.h"
 #include "Core/Graphics/Shader.h"
+#include "Core/Graphics/PipelineLayout.h"
 
 namespace Hubris::Graphics {	
 	/**
@@ -23,9 +25,10 @@ namespace Hubris::Graphics {
 	 * - DX12 Assumes FrontFaceOrder is Clockwise by default. The Vk backend will discard wrong/invalid Enum values and assume Clockwise.
 	 */
 	struct Rasterizer {
-		PolygonMode polygoneMode = PolygonMode::Fill;
+		PolygonMode polygonMode = PolygonMode::Fill;
 		FrontFaceOrder frontFace = FrontFaceOrder::Clockwise;
-		float depthBiasConstantFactor = .0f, depthBiasClamp = .0f, depthBiasSlopeFactor = .0f;
+		CullMode cullMode = CullMode::Front;
+		float depthBiasConstantFactor = .0f, depthBiasClamp = .0f, depthBiasSlopeFactor = 1.0f;
 		bool discard = false;
 		bool depthBias = false;
 		bool DepthClip = true;
@@ -34,38 +37,120 @@ namespace Hubris::Graphics {
 	struct MultiSamplingConfig {
 		SampleCount sampleCount = SampleCount::Count1;
 		bool perSampleShading = false;
+		bool enabled = false;
 		//TODO: Add a SampleMask Abstraction.
 		//SampleMask* mask = nullptr;
 	};
 
-	struct ColorBlendAttachment {
+	/**
+	 * @brief Color blending and logic operations for a single color attachment.
+	 *
+	 * @assumption{Compatibility}
+	 * Scope: Vulkan + DX12 (single render target baseline). 
+	 * Difference: Vulkan and DX12 both support blend factors/ops and logic operations, but logic-op and blending should not be enabled at the same time.
+	 * Fallback: If both are requested, backend should prioritize logic-op and disable blending (deterministic behavior).
+	 * Failure: warn.
+	 * Reason: Keeps pipeline state valid across backends while preserving explicit user intent.
+	 *
+	 * @assumption{Defaults}
+	 * Scope: Default value semantics.
+	 * Difference: Disabled blending should still have deterministic factors/ops.
+	 * Fallback: Opaque defaults are identity blend values (src=One, dst=Zero, op=Add).
+	 * Failure: ignore.
+	 * Reason: Predictable output and backend-neutral defaults.
+	 */
+	struct BlendConfig {
 		Component colorWriteMask = AllComponents;
 		bool blendEnable = false;
+		bool logicOpEnable = false;
+		BlendOp colorBlendOp = BlendOp::Add;
+		BlendOp alphaBlendOp = BlendOp::Add;
+		BlendFactor srcColorBlendFactor = BlendFactor::One;
+		BlendFactor srcAlphaBlendFactor = BlendFactor::One;
+		BlendFactor dstColorBlendFactor = BlendFactor::Zero;
+		BlendFactor dstAlphaBlendFactor = BlendFactor::Zero;
+		std::array<float, 4> blendConstants = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+		LogicOp logicOp = LogicOp::Copy;
+
+		static constexpr BlendConfig Opaque() noexcept {
+			return BlendConfig{};
+		}
+
+		static constexpr BlendConfig AlphaBlend() noexcept {
+			BlendConfig config{};
+			config.blendEnable = true;
+			config.srcColorBlendFactor = BlendFactor::SrcAlpha;
+			config.dstColorBlendFactor = BlendFactor::OneMinusSrcAlpha;
+			config.srcAlphaBlendFactor = BlendFactor::One;
+			config.dstAlphaBlendFactor = BlendFactor::OneMinusSrcAlpha;
+			return config;
+		}
+
+		static constexpr BlendConfig PremultipliedAlphaBlend() noexcept {
+			BlendConfig config{};
+			config.blendEnable = true;
+			config.srcColorBlendFactor = BlendFactor::One;
+			config.dstColorBlendFactor = BlendFactor::OneMinusSrcAlpha;
+			config.srcAlphaBlendFactor = BlendFactor::One;
+			config.dstAlphaBlendFactor = BlendFactor::OneMinusSrcAlpha;
+			return config;
+		}
+
+		static constexpr BlendConfig Additive() noexcept {
+			BlendConfig config{};
+			config.blendEnable = true;
+			config.srcColorBlendFactor = BlendFactor::One;
+			config.dstColorBlendFactor = BlendFactor::One;
+			config.srcAlphaBlendFactor = BlendFactor::One;
+			config.dstAlphaBlendFactor = BlendFactor::One;
+			return config;
+		}
 	};
 
-	//TODO: add depth/Astencil buffer support.
+	//TODO: add depth/stencil buffer support.
 	/**
 	 * @brief Abstraction of the pipeline descriptor.
 	 * 
 	 * @assumption{Compatibility}
-	 * PipelineDescriptor::primitiveRestartEnable: DX12 implicitly enables this for strip topologies; Vulkan requires explicit flag.
-	 * 
+	 * Scope: Primitive restart behavior.
+	 * Difference: DX12 implicitly enables primitive restart for strip topologies; Vulkan requires explicit primitiveRestartEnable.
+	 * Fallback: Backend sets API-native state from this field and may force true for strip topologies when required by API semantics.
+	 * Failure: warn.
+	 * Reason: Keeps topology behavior portable while preserving backend correctness.
+	 *
+	 * @assumption{Compatibility}
+	 * Scope: Independent blending.
+	 * Difference: DX12 requires IndependentBlendEnable flag for per-RT blend states; Vulkan behavior is effectively independent per attachment.
+	 * Fallback: Vulkan backend ignores this switch if irrelevant, DX12 backend maps directly.
+	 * Failure: ignore.
+	 * Reason: One neutral descriptor field keeps intent explicit for all backends.
+	 *
+	 * @assumption{Compatibility}
+	 * Scope: Alpha-to-coverage.
+	 * Difference: Alpha-to-coverage is meaningful only when multisampling is active.
+	 * Fallback: If MSAA sample count is 1, backend treats alphaToCoverageEnable as false.
+	 * Failure: ignore.
+	 * Reason: Avoids no-op ambiguity and keeps descriptor simple.
 	 */
 	struct PipelineDescriptor {
 		Viewport viewport;
 		Rect scissor;
-    	PipelineType type;
+    	PipelineType type = PipelineType::Graphics;
 		PrimitiveTopology topology = PrimitiveTopology::TriangleList;
 		uint8_t patchControlPoints = 0; ///< For Tessellation and PatchList topology. 
 		bool primitiveRestartEnable = false;  ///< For Strip topology, DX12 has this implicitly set to true. Backend must handle.
-    	std::vector<Handle<Shader>> shaders;
+    	std::vector<Handle<Shader>> shaders = std::vector<Handle<Shader>>();
 		Rasterizer rasterizeConfig = DefaultRaster; ///< Assigned the default rasterize
 		MultiSamplingConfig multiSampleConfig = MultiSamplingConfig();
+		BlendConfig blendConfig = BlendConfig::Opaque();
+		bool alphaToCoverageEnable = false;
+		bool independentBlendEnable = true; ///< This is always true for vulkan, thus it is ignored for the backend.
+		Handle<PipelineLayout> pipelineLayout = PipelineLayout::Create(std::vector<DescriptorSetLayout>(), std::vector<PushConstantRange>());
+		
 		// Additional config:
 		// - Vertex input layout
-		// - Blend state
 		// - Depth/stencil state
-		// - Rasterizer state
 		// - Push constants layout
 		// - Descriptor set layouts
 	};
@@ -73,5 +158,7 @@ namespace Hubris::Graphics {
 	class Pipeline {
 	public:
 		static Handle<Pipeline> Create(const PipelineDescriptor& desc);
+		// Pipeline() = default;
+        virtual ~Pipeline() = default;
 	};
 }

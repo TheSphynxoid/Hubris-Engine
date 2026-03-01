@@ -6,3 +6,6 @@ add_executable(Sandbox "Sandbox.cpp" "Sandbox.h")
 
 #target_link_libraries(Sandbox PRIVATE EngineStub)
 target_link_libraries(Sandbox PRIVATE HubrisEngine)
+
+# Install engine assets (compiled shaders and prebuilt assets) to the sandbox build directory
+install_engine_assets(Sandbox)

@@ -2,14 +2,14 @@
 #include "Core/Graphics/Pipeline.h"
 #include "volk.h"
 
-namespace Hubris::Graphics
+namespace Hubris::Graphics::Vulkan
 {
-    class vkPipeline final : public Pipeline{
+    class VulkanPipeline final : public Pipeline{
     private:
-        
+        VkPipeline graphicsPipeline = nullptr;
     public:
-        vkPipeline(const PipelineDescriptor& desc);
-        ~vkPipeline();
+        VulkanPipeline(const PipelineDescriptor& desc);
+        ~VulkanPipeline();
         
     };
 } // namespace Hubris::Graphics

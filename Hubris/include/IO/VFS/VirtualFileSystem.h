@@ -27,7 +27,7 @@ namespace Hubris::IO::VFS {
          * @param loader Unique pointer to loader implementation
          * @param priority Mount priority (higher = checked first)
          */
-        void Mount(std::unique_ptr<IAssetLoader> loader, int priority = 0);
+        void Mount(Handle<IAssetLoader> loader, int priority = 0);
 
         /**
          * @brief Unmount a loader by name
@@ -71,7 +71,7 @@ namespace Hubris::IO::VFS {
         ~VirtualFileSystem() = default;
 
         struct LoaderEntry {
-            std::unique_ptr<IAssetLoader> loader;
+            Handle<IAssetLoader> loader;
             int priority;
         };
 

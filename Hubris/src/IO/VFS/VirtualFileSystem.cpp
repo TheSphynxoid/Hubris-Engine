@@ -3,7 +3,7 @@
 
 namespace Hubris::IO::VFS {
 
-    void VirtualFileSystem::Mount(std::unique_ptr<IAssetLoader> loader, int priority) {
+    void VirtualFileSystem::Mount(Handle<IAssetLoader> loader, int priority) {
         std::lock_guard lock(m_mutex);
         m_loaders.push_back({ std::move(loader), priority });
         SortLoadersByPriority();

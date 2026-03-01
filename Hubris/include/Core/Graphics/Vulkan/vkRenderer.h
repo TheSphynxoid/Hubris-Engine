@@ -7,12 +7,12 @@ namespace Hubris::Graphics::Vulkan{
         VkQueue queue;
         uint32_t index;
     };
-    class vkRenderer final : public Renderer {
+    class VulkanRenderer final : public Renderer {
     private:
         static inline Queue GraphicsQueue;
         static inline Queue PresentQueue;
 
-        friend class vkBackend;
+        friend class VulkanBackend;
     public:
         inline static VkQueue GetGraphicsQueue() noexcept { return GraphicsQueue.queue; }
         inline static uint32_t GetGraphicsQueueIndex() noexcept { return GraphicsQueue.index; }

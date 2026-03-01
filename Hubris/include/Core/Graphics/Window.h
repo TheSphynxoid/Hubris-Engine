@@ -2,6 +2,7 @@
 #include "Format.h"
 #include "Structs.h"
 #include "Platform.h"
+#include "Swapchain.h"
 
 /**
  * @brief Contains all graphics related classes and structs.
@@ -46,5 +47,7 @@ namespace Hubris::Graphics
          * @return void* an platform dependent handle.
          */
         virtual void* GetNative()const noexcept = 0;
+
+        virtual Swapchain* GetSwapchain() const noexcept = 0;
     };
 } // namespace Hubris::Graphics

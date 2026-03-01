@@ -24,12 +24,12 @@ void Engine::InitGraphics(const EngineConfig & config)
 		static_assert(false, "MoltenVK is not available");
 #endif
 		// auto name = config.ProjectName;
-		// Vulkan::vkWindow::Create(config.WindowDimension, name.data());
-		Vulkan::vkWindow::InitGLFW();
-		Vulkan::vkBackend::CreateInstance();
+		// Vulkan::VulkanWindow::Create(config.WindowDimension, name.data());
+		Vulkan::VulkanWindow::InitGLFW();
+		Vulkan::VulkanBackend::CreateInstance();
 #if defined(_DEBUG) || defined(DEBUG) 
 		//TODO: Init is supposed to be headless, i'm doing this here because i want to test everything in the graphics together.
-		window = Vulkan::vkWindow::Create(config.WindowDimension.Width, config.WindowDimension.Height, config.ProjectName);
+		window = Vulkan::VulkanWindow::Create(config.WindowDimension.Width, config.WindowDimension.Height, config.ProjectName);
 #endif
 		break;
 	case RenderAPI::None:

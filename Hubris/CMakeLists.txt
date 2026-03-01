@@ -2,16 +2,59 @@ cmake_minimum_required(VERSION 3.26)
 # project(HubrisEngine VERSION 0.1.0 LANGUAGES CXX)
 
 set(HEADERS
-"include/EntryPoint.h"
-"include/pch.h" "include/Memory.h"
-"include/Core/ThreadPool.h" "include/Engine.h" "include/Core/ThreaddingServer.h" "include/Core/Graphics/GL/GLPlatform.h" "include/Logger.h" 
-"include/Core/Graphics/Vulkan/vkWindow.h" "include/Core/Graphics/Vulkan/vkRenderer.h" "include/Core/Graphics/Vulkan/vkBackend.h" "include/Platform.h" "include/IO/ResourceManager.h" "include/Core/Utils.h" "include/Core/Graphics/Format.h" 
-"include/Core/Graphics/Vulkan/Utility.h" "include/Core/Graphics/Vulkan/vkPipeline.h" "include/Core/Graphics/Vulkan/vkSwapchain.h" "include/Core/Graphics/Shader.h" "include/Core/Graphics/Image.h" "include/Core/Graphics/Vulkan/vkShader.h" "include/Core/Graphics/Pipeline.h"  "include/List.h"  "include/Core/EventBus.h" "include/HubrisGraphics.h"
-"include/IO/VFS/AssetHandle.h" "include/IO/VFS/IAssetLoader.h" "include/IO/VFS/VirtualFileSystem.h" "include/IO/VFS/FileSystemLoader.h")
+  "include/Core/EventBus.h"
+  "include/Core/Graphics/Format.h"
+  "include/Core/Graphics/GL/GLPlatform.h"
+  "include/Core/Graphics/Image.h"
+  "include/Core/Graphics/Pipeline.h"
+  "include/Core/Graphics/PipelineLayout.h"
+  "include/Core/Graphics/Shader.h"
+  "include/Core/ThreaddingServer.h"
+  "include/Core/Graphics/Vulkan/Utility.h"
+  "include/Core/Graphics/Vulkan/vkBackend.h"
+  "include/Core/Graphics/Vulkan/vkPipeline.h"
+  "include/Core/Graphics/Vulkan/vkPipelineLayout.h"
+  "include/Core/Graphics/Vulkan/vkRenderer.h"
+  "include/Core/Graphics/Vulkan/vkShader.h"
+  "include/Core/Graphics/Vulkan/vkSwapchain.h"
+  "include/Core/Graphics/Vulkan/vkWindow.h"
+  "include/Core/ThreadPool.h"
+  "include/Core/Utils.h"
+  "include/Engine.h"
+  "include/EntryPoint.h"
+  "include/HubrisGraphics.h"
+  "include/IO/ResourceManager.h"
+  "include/IO/VFS/AssetHandle.h"
+  "include/IO/VFS/FileSystemLoader.h"
+  "include/IO/VFS/IAssetLoader.h"
+  "include/IO/VFS/VirtualFileSystem.h"
+  "include/List.h"
+  "include/Logger.h"
+  "include/Memory.h"
+  "include/pch.h"
+  "include/Platform.h"
+)
 set(SOURCES
-"src/pch.cpp" "src/Memory_inst.cpp" "src/Logger.cpp" "src/IO/ResourceManager.cpp" "src/Entrypoint.cpp" "src/Engine.cpp" "src/Core/Graphics/Vulkan/vkWindow.cpp" "src/Core/Graphics/Vulkan/vkRenderer.cpp"
-"src/Core/Graphics/Vulkan/vkShader.cpp" "src/Core/Graphics/Window.cpp" "src/Core/Graphics/Shader.cpp" "src/Core/Graphics/Pipeline.cpp" "src/Core/Graphics/GL/GLPlatform.cpp" "src/Core/Graphics/Vulkan/vkSwapchain.cpp" "src/Core/Graphics/Vulkan/vkPipeline.cpp"
-"src/IO/VFS/VirtualFileSystem.cpp" "src/IO/VFS/FileSystemLoader.cpp")
+  "src/Core/Graphics/GL/GLPlatform.cpp"
+  "src/Core/Graphics/Pipeline.cpp"
+  "src/Core/Graphics/PipelineLayout.cpp"
+  "src/Core/Graphics/Shader.cpp"
+  "src/Core/Graphics/Vulkan/vkPipeline.cpp"
+  "src/Core/Graphics/Vulkan/vkPipelineLayout.cpp"
+  "src/Core/Graphics/Vulkan/vkRenderer.cpp"
+  "src/Core/Graphics/Vulkan/vkShader.cpp"
+  "src/Core/Graphics/Vulkan/vkSwapchain.cpp"
+  "src/Core/Graphics/Vulkan/vkWindow.cpp"
+  "src/Core/Graphics/Window.cpp"
+  "src/Engine.cpp"
+  "src/Entrypoint.cpp"
+  "src/IO/ResourceManager.cpp"
+  "src/IO/VFS/FileSystemLoader.cpp"
+  "src/IO/VFS/VirtualFileSystem.cpp"
+  "src/Logger.cpp"
+  "src/Memory_inst.cpp"
+  "src/pch.cpp"
+)
 
 message(${CMAKE_CURRENT_SOURCE_DIR})
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/src PREFIX "Source Files" FILES ${SOURCES})
@@ -45,14 +88,16 @@ find_package(fmt CONFIG REQUIRED)
 # find_package(SPIRV-Tools-link CONFIG REQUIRED)
 # find_package(slang CONFIG HINTS "$ENV{VULKAN_SDK}/lib/cmake")
 find_package(OpenGL REQUIRED)
-target_link_libraries(HubrisEngine PRIVATE OpenGL::GL)
 # The static libary is always available.
 # It offers full public symbol visibility.
-target_link_libraries(HubrisEngine PRIVATE SPIRV-Tools-static)
-target_link_libraries(HubrisEngine PRIVATE fmt::fmt)
-
-target_link_libraries(HubrisEngine PRIVATE assimp::assimp)
-target_link_libraries(HubrisEngine PRIVATE glfw)
+target_link_libraries(HubrisEngine
+PRIVATE
+  OpenGL::GL
+  SPIRV-Tools-static
+  assimp::assimp
+  fmt::fmt
+  glfw
+)
 target_link_libraries(HubrisEngine PUBLIC glm::glm)
 
 # target_link_libraries(HubrisEngine PRIVATE SPIRV-Tools-link SPIRV-Tools-lint SPIRV-Tools-opt SPIRV-Tools-reduce glslang::glslang glslang::glslang-default-resource-limits glslang::SPIRV glslang::SPVRemapper)
@@ -77,6 +122,7 @@ PRIVATE
     ${CMAKE_SOURCE_DIR}/Hubris/src
 )
 
-# Compile Slang shaders for the engine
-add_slang_shader_target(HubrisShaders SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shader.slang)
-add_dependencies(HubrisEngine HubrisShaders)
+# Ensure compiled shaders target exists and HubrisEngine depends on it
+if(TARGET CompileShaders)
+  add_dependencies(HubrisEngine CompileShaders)
+endif()

@@ -4,22 +4,22 @@
 #include <Core/Graphics/Vulkan/vkBackend.h>
 
 namespace Hubris::Graphics::Vulkan {
-	class vkShader final : public Shader {
+	class VulkanShader final : public Shader {
 	private:
 		VkShaderModule shaderModule;
-		ShaderStage stage = ShaderStage::Unknown;
+		std::string entryPoint = "main";
 	public:
-		vkShader(const std::vector<char>& code, ShaderStage stage);
-		~vkShader() noexcept {
+		VulkanShader(const std::span<const uint8_t>& code, ShaderStage stage, std::string entryPoint = "main");
+		~VulkanShader() noexcept {
 			Destroy();
 		}
 
 		virtual void Destroy() noexcept {
-			vkDestroyShaderModule(vkBackend::GetDevice(), shaderModule, vkBackend::GetAllocator());
+			vkDestroyShaderModule(VulkanBackend::GetDevice(), shaderModule, VulkanBackend::GetAllocator());
 			stage = ShaderStage::Unknown;
 		}
 
-		VkPipelineShaderStageCreateInfo GetShaderPipelineCreateInfo()noexcept {
+		VkPipelineShaderStageCreateInfo GetShaderPipelineCreateInfo()const noexcept {
 			VkPipelineShaderStageCreateInfo ShaderStageInfo{};
 			ShaderStageInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 			ShaderStageInfo.stage = VkShaderStageToFlags(stage);

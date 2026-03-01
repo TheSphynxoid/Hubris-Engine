@@ -8,7 +8,7 @@ namespace Hubris::Graphics::Vulkan {
 	/**
 	 * @brief Vulkan specific Windowing implementation.
 	 */
-	class vkWindow final : public Window {
+	class VulkanWindow final : public Window {
 	private:
 		friend class Engine;
 		/**
@@ -17,12 +17,12 @@ namespace Hubris::Graphics::Vulkan {
 		struct Details;
 		//TODO: Expose Natives.
 		Details* details= nullptr;
-		vkSwapchain swapchain = vkSwapchain(VK_NULL_HANDLE, (VkFormat)-1, VkExtent2D());
-		vkWindow() = default;
+		VulkanSwapchain swapchain = VulkanSwapchain(VK_NULL_HANDLE, (VkFormat)-1, VkExtent2D());
+		VulkanWindow() = default;
 		static void InitGLFW();
 	public:
-		[[nodiscard]] static vkWindow* Create(int Width, int Height, const std::string& title);
-		virtual ~vkWindow() override;
+		[[nodiscard]] static VulkanWindow* Create(int Width, int Height, const std::string& title);
+		virtual ~VulkanWindow() override;
 		void Init() override;
 		void Update() noexcept override;
 		void Close() noexcept override;
@@ -31,6 +31,6 @@ namespace Hubris::Graphics::Vulkan {
 		inline bool IsRunning()const noexcept override;
 		void* GetNative() const noexcept override;
 		void* GetSurface()const noexcept;
-		Swapchain* GetSwapchain()const noexcept;
+		virtual Swapchain* GetSwapchain()const noexcept override;
 	};
 }

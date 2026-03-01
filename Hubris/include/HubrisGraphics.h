@@ -5,4 +5,5 @@
 #include <Core/Graphics/Swapchain.h>
 #include <Core/Graphics/Image.h>
 #include <Core/Graphics/Pipeline.h>
+#include <Core/Graphics/PipelineLayout.h>
 #include <Core/Graphics/Renderer.h>
