@@ -4,7 +4,6 @@ cmake_minimum_required(VERSION 3.26)
 set(HEADERS
   "include/Core/EventBus.h"
   "include/Core/Graphics/Format.h"
-  "include/Core/Graphics/GL/GLPlatform.h"
   "include/Core/Graphics/Image.h"
   "include/Core/Graphics/Pipeline.h"
   "include/Core/Graphics/PipelineLayout.h"
@@ -35,7 +34,6 @@ set(HEADERS
   "include/Platform.h"
 )
 set(SOURCES
-  "src/Core/Graphics/GL/GLPlatform.cpp"
   "src/Core/Graphics/Pipeline.cpp"
   "src/Core/Graphics/PipelineLayout.cpp"
   "src/Core/Graphics/Shader.cpp"

@@ -123,7 +123,7 @@ function(install_engine_assets TARGET)
         "${COMPILED_SHADERS_DIR}"
         "$<TARGET_FILE_DIR:${TARGET}>/assets/shaders"
       COMMENT "Copying compiled shaders to ${TARGET}"
-      DEPENDS CompileShaders
+      # DEPENDS CompileShaders
     )
   endif()
 endfunction()
