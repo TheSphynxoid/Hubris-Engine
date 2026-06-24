@@ -106,4 +106,9 @@ Hubris::Graphics::Vulkan::VulkanPipeline::VulkanPipeline(const PipelineDescripto
     }
 }
 
-Hubris::Graphics::Vulkan::VulkanPipeline::~VulkanPipeline() = default;
+Hubris::Graphics::Vulkan::VulkanPipeline::~VulkanPipeline() {
+    if (graphicsPipeline) {
+        vkDestroyPipeline(VulkanBackend::GetDevice(), graphicsPipeline, VulkanBackend::GetAllocator());
+        graphicsPipeline = nullptr;
+    }
+}

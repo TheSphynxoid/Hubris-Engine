@@ -50,6 +50,37 @@ Hubris::Graphics::Vulkan::VulkanSwapchain::~VulkanSwapchain()
     Destroy();
 }
 
+Hubris::Graphics::Vulkan::VulkanSwapchain::VulkanSwapchain(VulkanSwapchain&& other) noexcept
+    : handle(other.handle),
+      swapChainExtent(other.swapChainExtent),
+      swapChainImageFormat(other.swapChainImageFormat),
+      imageCount(other.imageCount),
+      images(std::move(other.images)),
+      swapChainImageViews(std::move(other.swapChainImageViews)),
+      LastOperation(other.LastOperation)
+{
+    // Leave the moved-from object in a valid, destroyable-but-empty state.
+    other.handle = VK_NULL_HANDLE;
+    other.imageCount = 0;
+}
+
+Hubris::Graphics::Vulkan::VulkanSwapchain&
+Hubris::Graphics::Vulkan::VulkanSwapchain::operator=(VulkanSwapchain&& other) noexcept {
+    if (this != &other) {
+        Destroy(); // release our current resources first
+        handle = other.handle;
+        swapChainExtent = other.swapChainExtent;
+        swapChainImageFormat = other.swapChainImageFormat;
+        imageCount = other.imageCount;
+        images = std::move(other.images);
+        swapChainImageViews = std::move(other.swapChainImageViews);
+        LastOperation = other.LastOperation;
+        other.handle = VK_NULL_HANDLE;
+        other.imageCount = 0;
+    }
+    return *this;
+}
+
 
 SwapchainResult Hubris::Graphics::Vulkan::VulkanSwapchain::AcquireNextImage(uint32_t& imageIndex)
 {
@@ -87,13 +118,17 @@ bool Hubris::Graphics::Vulkan::VulkanSwapchain::IsValid() const noexcept
 
 void Hubris::Graphics::Vulkan::VulkanSwapchain::Destroy() noexcept
 {
-    vkDestroySwapchainKHR(VulkanBackend::GetDevice(), handle, VulkanBackend::GetAllocator());
-    handle = VK_NULL_HANDLE;
+    if (handle != VK_NULL_HANDLE) {
+        vkDestroySwapchainKHR(VulkanBackend::GetDevice(), handle, VulkanBackend::GetAllocator());
+        handle = VK_NULL_HANDLE;
+    }
     swapChainExtent.height = 0;
     swapChainExtent.width = 0;
     swapChainImageFormat = VK_FORMAT_UNDEFINED;
     for (auto imageview : swapChainImageViews) {
-         
-        vkDestroyImageView(VulkanBackend::GetDevice(), imageview, VulkanBackend::GetAllocator());
+        if (imageview != VK_NULL_HANDLE) {
+            vkDestroyImageView(VulkanBackend::GetDevice(), imageview, VulkanBackend::GetAllocator());
+        }
     }
+    swapChainImageViews.clear();
 }

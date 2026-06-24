@@ -16,6 +16,13 @@ namespace Hubris::Graphics::Vulkan {
 	public:
 		VulkanSwapchain(VkSwapchainKHR swapchain, VkFormat format, VkExtent2D extent) noexcept;
 		~VulkanSwapchain() noexcept;
+
+		// VulkanSwapchain owns VkSwapchainKHR + image views; it is move-only.
+		VulkanSwapchain(const VulkanSwapchain&) = delete;
+		VulkanSwapchain& operator=(const VulkanSwapchain&) = delete;
+		VulkanSwapchain(VulkanSwapchain&& other) noexcept;
+		VulkanSwapchain& operator=(VulkanSwapchain&& other) noexcept;
+
 		// Inherited via Swapchain
 		SwapchainResult AcquireNextImage(uint32_t& imageIndex) override;
 		void* GetImage(uint32_t imageIndex) const override;

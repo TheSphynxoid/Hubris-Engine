@@ -31,6 +31,10 @@ endif()
 
 project(HubrisEngine)
 
+# LTCG/LTO + PGO infrastructure. Options default to: LTCG on, PGO off.
+# See cmake/PGO.cmake for the workflow and the "when to use PGO" caveat.
+include("${CMAKE_SOURCE_DIR}/cmake/PGO.cmake")
+
 # TODO: Add tests and install targets if needed.
 # set(CMAKE_BINARY_DIR "${CMAKE_SOURCE_DIR}/build")
 # set(EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
@@ -133,6 +137,10 @@ add_subdirectory("Hubris")
 add_subdirectory("Sandbox")
 # Add source to this project's executable.
 # add_executable (Hubris-Engine "Hubris-Engine.cpp" "Hubris-Engine.h")
+
+# Apply LTCG (and PGO if enabled) to built targets.
+hubris_apply_optimization(HubrisEngine)
+hubris_apply_optimization(Sandbox)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET HubrisEngine PROPERTY CXX_STANDARD 20)

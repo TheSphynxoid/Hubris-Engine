@@ -13,15 +13,15 @@ void OnStart(const Hubris::Core::OnStart& e){
     Hubris::Logger::Log("Client On Start Called");
     auto& vfs = Hubris::IO::VFS::VFS();
 
-    auto vertShaderCode = vfs.Load("shaders://vert.spv");
-    if(!vertShaderCode && !vertShaderCode.value().Size()){
-        Hubris::Logger::Log("Unable to read vert.spv");
+    auto vertShaderCode = vfs.Load("shaders://shader_vert.spv");
+    if(!vertShaderCode || vertShaderCode->Size() == 0){
+        Hubris::Logger::Log("Unable to read shader_vert.spv");
         Hubris::Engine::Shutdown();
         return;
     }
-    auto fragShaderCode = vfs.Load("shaders://frag.spv");
-    if(!fragShaderCode && !fragShaderCode.value().Size()){
-        Hubris::Logger::Log("Unable to read frag.spv");
+    auto fragShaderCode = vfs.Load("shaders://shader_frag.spv");
+    if(!fragShaderCode || fragShaderCode->Size() == 0){
+        Hubris::Logger::Log("Unable to read shader_frag.spv");
         Hubris::Engine::Shutdown();
         return;
     }
@@ -48,8 +48,10 @@ void OnStart(const Hubris::Core::OnStart& e){
     desc.shaders.emplace_back(std::move(FragShader));
     
     Hubris::Handle<Hubris::Graphics::Pipeline> p = Hubris::Graphics::Pipeline::Create(desc);
-    
-    _CrtDbgBreak();
+
+    Hubris::Logger::Log("Sandbox pipeline created successfully.");
+    // Success: return and let Engine::Run() keep the window open.
+    // (Shutdown() is only for the failure branches above.)
 }
 
 int run(int argc, char** argv){

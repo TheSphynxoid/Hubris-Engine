@@ -197,8 +197,9 @@ void Hubris::Graphics::Vulkan::VulkanWindow::Update() noexcept
 void Hubris::Graphics::Vulkan::VulkanWindow::Close() noexcept
 {
 	glfwSetWindowShouldClose(details->Window, true);
-	vkDestroySurfaceKHR(VulkanBackend::GetInstance(), details->surface, nullptr);
+	// Vulkan requires the swapchain to be destroyed before its surface.
 	swapchain.Destroy();
+	vkDestroySurfaceKHR(VulkanBackend::GetInstance(), details->surface, nullptr);
 }
 
 Hubris::Graphics::Viewport Hubris::Graphics::Vulkan::VulkanWindow::GetViewport() const noexcept

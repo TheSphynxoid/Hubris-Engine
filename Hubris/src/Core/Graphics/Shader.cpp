@@ -10,4 +10,6 @@ Handle<Graphics::Shader> Graphics::Shader::Create(const std::span<const uint8_t>
     if constexpr (Platform == Hbr_Platform::Windows) {
         return new Vulkan::VulkanShader(data, type, entryPoint);
     }
+    assert(false && "Shader::Create: platform unsupported or unknown");
+    return nullptr;
 }
