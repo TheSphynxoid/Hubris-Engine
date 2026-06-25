@@ -89,11 +89,31 @@ endfunction()
 
 # Apply PGO instrumentation or optimization flags (MSVC only). No-op when
 # neither PGO option is set, so callers can always invoke it safely.
+#
+# PGO is a final-link operation: /LTCG:PGINSTRUMENT and /LTCG:PGOPTIMIZE are
+# link.exe flags applied when producing the final executable image, and the
+# profile (.pgd) is tied to that executable's image + workload. A static library
+# has no link step and is never "run", so PGO on a STATIC_LIBRARY target would
+# only redundantly set /GL (already handled by hubris_apply_lto) and silently
+# drop the link options. Restrict real PGO work to EXECUTABLE targets; the lib
+# just needs /GL from LTCG so its bitcode participates in the exe's PGO link.
 function(hubris_apply_pgo TARGET_NAME)
     if(NOT MSVC)
         if(HUBRIS_PGO_INSTRUMENT OR HUBRIS_PGO_OPTIMIZE)
             message(WARNING "PGO flags are MSVC-only; ignoring for non-MSVC ${TARGET_NAME}.")
         endif()
+        return()
+    endif()
+
+    if(NOT (HUBRIS_PGO_INSTRUMENT OR HUBRIS_PGO_OPTIMIZE))
+        return()
+    endif()
+
+    get_target_property(_target_type ${TARGET_NAME} TYPE)
+    if(NOT _target_type STREQUAL "EXECUTABLE")
+        # Only executables drive a PGO cycle; static/shared libs have no link
+        # step and no workload. Their /GL is already handled by hubris_apply_lto.
+        message(STATUS "PGO: skipping ${TARGET_NAME} (${_target_type}) — PGO only applies to executables.")
         return()
     endif()
 
