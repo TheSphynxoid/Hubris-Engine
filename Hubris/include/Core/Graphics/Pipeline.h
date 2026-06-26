@@ -146,7 +146,10 @@ namespace Hubris::Graphics {
 		BlendConfig blendConfig = BlendConfig::Opaque();
 		bool alphaToCoverageEnable = false;
 		bool independentBlendEnable = true; ///< This is always true for vulkan, thus it is ignored for the backend.
-		Handle<PipelineLayout> pipelineLayout = PipelineLayout::Create(std::vector<DescriptorSetLayout>(), std::vector<PushConstantRange>());
+		// Pipeline layout. Default-constructed to null — declaring a PipelineDescriptor
+		// must not touch the GPU. When left null, the backend creates an empty default
+		// layout inside the pipeline factory. See VulkanPipeline ctor.
+		Handle<PipelineLayout> pipelineLayout;
 		
 		// Additional config:
 		// - Vertex input layout

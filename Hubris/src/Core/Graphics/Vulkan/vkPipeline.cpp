@@ -83,12 +83,25 @@ Hubris::Graphics::Vulkan::VulkanPipeline::VulkanPipeline(const PipelineDescripto
     inputAssembly.topology = ToVkPrimitiveTopology(desc.topology);
     inputAssembly.primitiveRestartEnable = desc.primitiveRestartEnable;
 
+    // Resolve pipeline layout. Vulkan requires a valid (non-null) VkPipelineLayout,
+    // so when the descriptor omits one we lazily create an empty default layout here
+    // — the constructive default lives in the factory, not in PipelineDescriptor.
+    // Handle is move-only, so we resolve the native pointer first, then move the
+    // fallback (if any) into m_fallbackLayout for ownership — no copies.
+    VkPipelineLayout resolvedLayout;
+    if (desc.pipelineLayout) {
+        resolvedLayout = (VkPipelineLayout)desc.pipelineLayout->GetNative();
+    } else {
+        m_fallbackLayout = PipelineLayout::Create(std::vector<DescriptorSetLayout>(), std::vector<PushConstantRange>());
+        resolvedLayout = (VkPipelineLayout)m_fallbackLayout->GetNative();
+    }
+
     VkGraphicsPipelineCreateInfo pipelineInfo{.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pNext = &pipelineRenderingCreateInfo,
         .pVertexInputState = &vertexInputInfo, .pInputAssemblyState = &inputAssembly,
         .pViewportState = &viewportState, .pRasterizationState = &rasterizer,
         .pMultisampleState = &multisampling, .pColorBlendState = &colorBlending,
-        .pDynamicState = &dynamicState, .layout = (VkPipelineLayout)desc.pipelineLayout->GetNative(), .renderPass = nullptr};
+        .pDynamicState = &dynamicState, .layout = resolvedLayout, .renderPass = nullptr};
 
     pipelineInfo.stageCount = desc.shaders.size();
     
