@@ -104,10 +104,10 @@ Hubris::Graphics::Vulkan::VulkanPipeline::VulkanPipeline(const PipelineDescripto
         .pDynamicState = &dynamicState, .layout = resolvedLayout, .renderPass = nullptr};
 
     pipelineInfo.stageCount = desc.shaders.size();
-    
+
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages = std::vector<VkPipelineShaderStageCreateInfo>();
-    for(auto& pShader : desc.shaders){
-        shaderStages.push_back((reinterpret_cast<const VulkanShader*>(pShader.get())->GetShaderPipelineCreateInfo()));
+    for(const Observer<Shader>& obs : desc.shaders){
+        shaderStages.push_back((reinterpret_cast<const VulkanShader*>(obs.get())->GetShaderPipelineCreateInfo()));
     }
     pipelineInfo.pStages = shaderStages.data();
 

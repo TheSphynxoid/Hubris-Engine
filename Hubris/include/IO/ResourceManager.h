@@ -1,138 +1,123 @@
 #pragma once
 #include <filesystem>
+#include <mutex>
+#include <string>
+#include <string_view>
+#include <typeindex>
+#include <unordered_map>
+#include <vector>
 
+#include "IO/VFS/AssetHandle.h"
+#include "Memory.h"
 
 namespace Hubris::IO {
-    // class IOBuffer {
-    // private:
-    //     const void* buffer = nullptr;
-    //     size_t buffersize = 0;
-        
-    // public:
-    //     IOBuffer()noexcept = default;
-    //     IOBuffer(const void* buffer, const size_t buffersize)noexcept {
-    //         assert("this struct is incomplete and is not safe until the dtor gets complete");
-    //         this->buffer = buffer;
-    //         this->buffersize = buffersize;
-    //     }
-    //     ~IOBuffer() {
-    //         //Delete by Pointer-to-void is UB and unsafe.
-    //         delete buffer;
-    //         buffersize = 0;
-    //         buffer = nullptr;
-    //     }
-    //     inline const size_t& size()const noexcept { return buffersize; };
-    //     inline const void* get_raw()const noexcept { return buffer; };
-    // };
 
-    // class ExtensionHandler {
-    // public:
-    //     virtual ~ExtensionHandler() = 0;
+    // Forward declaration: ResourceConfig is defined in Engine.h. We only need a
+    // reference here, so the full definition isn't required at declaration time.
+    struct ResourceConfig;
 
-    //     virtual IOBuffer& Read(const std::string& Path, bool RelativePath = true) = 0;
-    //     virtual void Write(const void* Buffer, const size_t Buf_Size) = 0;
-    // };
-    // struct Extension {
-    //     /**
-    //      * @brief Use | to seperate between handled file extensions.
-    //      */
-    //     const char* extPostfix;
-    //     ExtensionHandler* Handler;
-    // };
-
-
-    class Asset {
-
-    };
-
-
-    template<typename T>
-    concept AssetHandlerConcept = requires(const std::string & path, std::shared_ptr<Asset> asset) {
-
-        typename T::AssetType;
-        // Must have Load(path)
-        { T::Load(path) } -> std::same_as<std::shared_ptr<typename T::AssetType>>;
-
-        // Must have Save(asset, path)
-        { T::Save(asset, path) } -> std::same_as<void>;
-
-        // Must have Import(path)
-        { T::Import(path) } -> std::same_as<std::shared_ptr<typename T::AssetType>>;
-
-        // Must have GetHandledType()
-        { T::GetHandledType() } -> std::same_as<std::string>;
-    };
-
+    /// @brief Typed asset cache + user-facing resource API.
+    ///
+    /// Two-component split with VFS: VFS is abstract storage (raw bytes from anywhere,
+    /// priority overrides, DLC mounting); ResourceManager is the typed layer that owns
+    /// parsed GPU resources and serves them by virtual path.
+    ///
+    /// @section Ownership
+    /// Typed objects own their parsed GPU resources; raw bytes are transient.
+    /// `Load<T>` fetches bytes via VFS, calls the registered typed factory, frees the
+    /// bytes immediately, caches the `Handle<T>`. The cache therefore holds the canonical
+    /// typed result; callers receive a non-owning `T*` view (RM is an engine-lifetime
+    /// singleton, so the view outlives any caller). This dissolves the VFS
+    /// "one Unload dangles everyone" aliasing bug — bytes are never held long-term.
+    ///
+    /// @section Reference model
+    /// Dev-facing API is path-string (`Load<Shader>("shaders://foo")`); cache is keyed
+    /// by hash of (type, path) internally. Preserves the option to cook path->hash at
+    /// pack time (dev = readable, shipped = compact) without changing the API.
+    ///
+    /// @section Factory registration
+    /// Explicit: `RegisterFactory<Shader>(factoryFn)` called from Engine init. Explicit
+    /// over magic (static auto-register) because init-order races are hard to debug and
+    /// the open-access philosophy favors explicit over implicit.
     class ResourceManager {
-    private:
-        // typedef std::unordered_map<std::string, ExtensionHandler*> ExtensionHandlerMap;
-        // static inline ExtensionHandlerMap HandlerMap = ExtensionHandlerMap(25);
-
-
-        // static std::vector<std::string> ParseExtensions(const std::string& extPostfix) {
-        //     std::stringstream ss(extPostfix);
-        //     std::string extension;
-        //     std::vector<std::string> extensions;
-
-        //     while (std::getline(ss, extension, '|')) {
-        //         extension.erase(0, extension.find_first_not_of(" \t\n\r\f\v"));
-        //         extension.erase(extension.find_last_not_of(" \t\n\r\f\v") + 1);
-        //         extensions.push_back(extension);
-        //     }
-        //     return extensions;
-        // }
     public:
-    //     static void SetExtensionHandler(const Extension& ext) {
-    //         //Parse The postfix. | is used to seperate between file extension handled.
-    //         std::stringstream ss(ext.extPostfix);
-    //         std::string extension;
+        /// Type-erased factory: takes raw asset bytes + the virtual path (for
+        /// stage/metadata deduction, e.g. `_vert`/`_frag` suffix), returns an owning
+        /// pointer to a heap-allocated typed object as `void*` for type-erased storage.
+        /// The typed `Load<T>` knows the real type and casts back.
+        /// @return Opaque pointer to the typed object, or nullptr on failure.
+        using FactoryFn = void* (*)(std::span<const uint8_t> data, std::string_view path);
 
-    //         while (std::getline(ss, extension, '|')) {
-    //             // Remove any leading or trailing whitespace
-    //             extension.erase(0, extension.find_first_not_of(" \t\n\r\f\v"));
-    //             extension.erase(extension.find_last_not_of(" \t\n\r\f\v") + 1);
+        /// @brief Per-type destructor (the cache stores `void*`, so it can't call `delete T`).
+        using DestructorFn = void (*)(void* obj);
 
-    //             // Add the extension and its handler to the map
-    //             HandlerMap[extension] = ext.Handler;
-    //         }
-    //     }
-
-    //     static IOBuffer& ReadFile(const std::string& path) {
-    //         size_t dotPos = path.find_last_of('.');
-    //         if (dotPos == std::string::npos) {
-    //             // No extension found
-    //             static IOBuffer NULLBUF(nullptr, 0);
-    //             return NULLBUF;
-    //         }
-    //         auto& handler = HandlerMap[path.substr(dotPos + 1)];
-
-    //         return handler->Read(path);
-    //     }
-
-        
-        
-    };
-    /**
-     * @brief Temporary function until asset and resource management is implemented.
-     * 
-     * @param filename 
-     * @return std::vector<char> 
-     */
-    static std::vector<char> readFile(const std::string& filename) {
-        std::ifstream file(filename, std::ios::ate | std::ios::binary);
-    
-        if (!file.is_open()) {
-            throw std::runtime_error("failed to open file!");
+        static ResourceManager& Instance() {
+            static ResourceManager instance;
+            return instance;
         }
 
-        size_t fileSize = (size_t) file.tellg();
-        std::vector<char> buffer(fileSize);
-        
-        file.seekg(0);  
-        file.read(buffer.data(), fileSize);
+        ResourceManager(const ResourceManager&) = delete;
+        ResourceManager& operator=(const ResourceManager&) = delete;
 
-        file.close();
-        return buffer;
+        /// @brief Register a typed factory. Called explicitly by the client (or a layer
+        /// acting on the client's behalf, e.g. graphics). Not auto-invoked by the engine.
+        template<typename T>
+        void RegisterFactory(FactoryFn factory, DestructorFn destructor) {
+            std::lock_guard lock(m_mutex);
+            m_factories[std::type_index(typeid(T))] = { factory, destructor };
+        }
+
+        /// @brief Mount the VFS loaders declared in the config, exe-relative. Called by
+        /// Engine::Init with the client-supplied ResourceConfig. The engine provides the
+        /// mechanism (mount what it's told); the client provides the policy (what to mount
+        /// via EngineConfig.resources). CWD-independent (exe-relative). No factory
+        /// registration here — that's the client's explicit job via RegisterFactory<T>.
+        void Initialize(const ResourceConfig& config);
+
+        /// @brief Load a typed asset by virtual path. Returns a non-owning view; the
+        /// cache owns the object for the engine's lifetime.
+        /// @return Pointer to the cached typed object, or nullptr on failure.
+        template<typename T>
+        [[nodiscard]] T* Load(std::string_view path) {
+            void* obj = Load(typeid(T), path);
+            return static_cast<T*>(obj);
+        }
+
+        /// @brief Escape hatch: fetch raw bytes without a typed factory. Bytes are owned
+        /// by the returned AssetHandle (caller must hold or copy). No caching.
+        [[nodiscard]] std::optional<VFS::AssetHandle> LoadRaw(std::string_view path);
+
+        /// @brief Drop a single cached asset (frees its memory via the registered destructor).
+        void Unload(std::string_view path);
+
+        /// @brief Clear the entire typed cache (frees all cached assets). Hot-reload hook.
+        void ClearCache();
+
+        /// @brief Number of cached assets (for debugging / profiling).
+        [[nodiscard]] size_t CachedCount() const;
+
+    private:
+        ResourceManager() = default;
+        ~ResourceManager();
+
+        struct FactoryEntry {
+            FactoryFn factory;
+            DestructorFn destructor;
+        };
+        struct CacheEntry {
+            void* obj;                 ///< Type-erased typed object (owned).
+            DestructorFn destructor;   ///< How to destroy it.
+            std::type_index type;
+        };
+
+        void* Load(std::type_index type, std::string_view path);
+
+        mutable std::mutex m_mutex;
+        std::unordered_map<std::type_index, FactoryEntry> m_factories;
+        std::unordered_map<uint64_t, CacheEntry> m_cache;  ///< Keyed by hash(type, path)
     };
 
-}
+    /// @brief Convenience accessor.
+    inline ResourceManager& Resources() { return ResourceManager::Instance(); }
+
+} // namespace Hubris::IO

@@ -140,7 +140,7 @@ namespace Hubris::Graphics {
 		PrimitiveTopology topology = PrimitiveTopology::TriangleList;
 		uint8_t patchControlPoints = 0; ///< For Tessellation and PatchList topology. 
 		bool primitiveRestartEnable = false;  ///< For Strip topology, DX12 has this implicitly set to true. Backend must handle.
-    	std::vector<Handle<Shader>> shaders = std::vector<Handle<Shader>>();
+    	std::vector<Observer<Shader>> shaders; ///< Non-owning views. Shaders are owned by the ResourceManager cache (engine-lifetime).
 		Rasterizer rasterizeConfig = DefaultRaster; ///< Assigned the default rasterize
 		MultiSamplingConfig multiSampleConfig = MultiSamplingConfig();
 		BlendConfig blendConfig = BlendConfig::Opaque();

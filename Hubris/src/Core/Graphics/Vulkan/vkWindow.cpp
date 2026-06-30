@@ -189,9 +189,10 @@ void Hubris::Graphics::Vulkan::VulkanWindow::Init()
 
 void Hubris::Graphics::Vulkan::VulkanWindow::Update() noexcept
 {
-	while (!glfwWindowShouldClose(details->Window)) {
-		glfwPollEvents();
-	}
+	// Non-blocking: poll once and return. The engine owns the frame loop; this just feeds
+	// OS events. The previous while-loop here ran a nested blocking loop that prevented
+	// per-frame engine work from running while the window was open.
+	glfwPollEvents();
 }
 
 void Hubris::Graphics::Vulkan::VulkanWindow::Close() noexcept

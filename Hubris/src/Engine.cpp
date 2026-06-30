@@ -23,14 +23,10 @@ void Engine::InitGraphics(const EngineConfig & config)
 #ifdef HBR_APPLE
 		static_assert(false, "MoltenVK is not available");
 #endif
-		// auto name = config.ProjectName;
-		// Vulkan::VulkanWindow::Create(config.WindowDimension, name.data());
+		// Backend setup only — no window. Init is headless; the client creates a window
+		// explicitly via Engine::CreateWindow() after Init if one is wanted.
 		Vulkan::VulkanWindow::InitGLFW();
 		Vulkan::VulkanBackend::CreateInstance();
-#if defined(_DEBUG) || defined(DEBUG) 
-		//TODO: Init is supposed to be headless, i'm doing this here because i want to test everything in the graphics together.
-		window = Vulkan::VulkanWindow::Create(config.WindowDimension.Width, config.WindowDimension.Height, config.ProjectName);
-#endif
 		break;
 	case RenderAPI::None:
 		//Special Headless mode. I haven't yet conceptualized it.
@@ -38,4 +34,14 @@ void Engine::InitGraphics(const EngineConfig & config)
 	default:
 		return;
 	}
+}
+
+void Engine::CreateWindowInternal(const WindowCreateInfo& info)
+{
+	// Backend dispatch by the configured RenderAPI. Currently Vulkan-only on Windows;
+	// DX12 is a future target. When DX12 lands, thread the API choice through here
+	// (it's currently captured in EngineConfig at Init but not stored on Engine).
+#ifdef HBR_WINDOWS
+	window = Vulkan::VulkanWindow::Create(info.width, info.height, info.title);
+#endif
 }
